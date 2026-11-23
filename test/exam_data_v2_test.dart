@@ -78,12 +78,15 @@ void main() {
       expect(paperOf(10).questions, hasLength(27));
     });
 
-    test('无重复题目（题型 + 题干去重键）', () {
+    test('无重复题目（题型 + 共用题干 + 题干去重键）', () {
+      // 注意：共用题干选择题的子题干可能同名（如“对比剂注射方案宜为”），
+      // 必须把 groupStem 纳入去重键，否则不同材料下的同名子题会被误判为重复。
       final Set<String> keys = <String>{};
       int duplicates = 0;
       for (final Paper paper in allBuiltinPapers) {
         for (final Question q in paper.questions) {
-          final String key = '${q.type}|${q.stem.trim()}';
+          final String key =
+              '${q.type}|${q.groupStem ?? ''}|${q.stem.trim()}';
           if (!keys.add(key)) duplicates++;
         }
       }

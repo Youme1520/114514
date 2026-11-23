@@ -20,11 +20,11 @@ jobs:
     steps:
       # 1. 检出代码
       - name: Checkout 代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # 2. 配置 Java 17 环境
       - name: 配置 Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -47,6 +47,8 @@ jobs:
         run: |
           if [ ! -d "android" ]; then
             flutter create --platforms=android --org com.yingxiang.tiku --project-name yingxiang_tiku_app .
+            # 删除 flutter create 自动生成的默认模板测试（引用不存在的 MyApp，会导致 flutter test 编译失败）
+            rm -f test/widget_test.dart
           fi
 
       # 5. 拉取依赖
@@ -54,8 +56,14 @@ jobs:
         run: flutter pub get
 
       # 5.1 运行单元测试（解析/判分/断点续传/数据完整性）
+      #     先安装 libsqlite3：sqflite_common_ffi v2 在 Linux 上依赖系统 SQLite 库
+      #     （ubuntu-latest 24.04 默认不预装，缺少会导致数据库单测报 libsqlite3.so 加载失败）
+      - name: 安装 SQLite 系统库
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0 libsqlite3-dev
+
+      # 5.2 运行单元测试，使用 expanded reporter 便于定位失败用例的具体断言
       - name: 运行单元测试 (flutter test)
-        run: flutter test
+        run: flutter test --reporter=expanded
 
       # 5.5 配置 Android 应用名与网络权限
       #     - 将应用显示名改为「影像技术刷题宝」

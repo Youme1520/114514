@@ -202,8 +202,12 @@ class ImportService {
         map.containsKey('题目');
   }
 
-  /// 去重键：题型 + 题干（去除首尾空白）。
-  static String dedupKey(Question q) => '${q.type}|${q.stem.trim()}';
+  /// 去重键：题型 + 共用题干 + 题干（去除首尾空白）。
+  ///
+  /// 共用题干选择题的子题干可能同名（如“对比剂注射方案宜为”），
+  /// 需纳入 [Question.groupStem] 区分不同材料下的同名子题，避免误去重。
+  static String dedupKey(Question q) =>
+      '${q.type}|${q.groupStem ?? ''}|${q.stem.trim()}';
 
   /// 按去重键过滤：返回去重后的题目与重复计数。
   static ({List<Question> unique, int duplicates}) deduplicate(

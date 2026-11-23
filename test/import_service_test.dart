@@ -171,14 +171,32 @@ void main() {
   });
 
   group('去重', () {
-    test('dedupKey 使用题型 + 去空白题干', () {
+    test('dedupKey 使用题型 + 共用题干 + 去空白题干', () {
       final Question q = Question(
         paperSet: 0,
         type: QuestionType.single,
         stem: ' 同一题干 ',
         answer: 'A',
       );
-      expect(ImportService.dedupKey(q), '单选|同一题干');
+      expect(ImportService.dedupKey(q), '单选||同一题干');
+    });
+
+    test('共用题干题同名子题按 groupStem 区分', () {
+      final Question q1 = Question(
+        paperSet: 0,
+        type: QuestionType.sharedStem,
+        groupStem: '肺动脉CTA材料',
+        stem: '对比剂注射方案宜为',
+        answer: 'A',
+      );
+      final Question q2 = Question(
+        paperSet: 0,
+        type: QuestionType.sharedStem,
+        groupStem: '下肢动脉CTA材料',
+        stem: '对比剂注射方案宜为',
+        answer: 'A',
+      );
+      expect(ImportService.dedupKey(q1), isNot(equals(ImportService.dedupKey(q2))));
     });
 
     test('deduplicate 过滤重复并统计', () {
