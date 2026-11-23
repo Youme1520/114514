@@ -1,0 +1,35 @@
+name: yingxiang_tiku_app
+description: 医学影像技术刷题宝 - 医学影像技术备考刷题与背诵 Flutter 应用
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # 状态管理
+  provider: ^6.1.2
+  # 本地数据库
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  # 文件选择
+  file_picker: ^8.0.0
+  # CSV 解析
+  csv: ^6.0.0
+  # 网络请求
+  dio: ^5.4.3
+  # 本地配置存储
+  shared_preferences: ^2.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+  # 纯 Dart 环境运行数据库单测（内存数据库）
+  sqflite_common_ffi: ^2.3.0
+
+flutter:
+  uses-material-design: true
