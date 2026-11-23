@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/question.dart';
+import '../models/study_progress.dart';
 import '../providers/settings_provider.dart';
 import '../providers/study_provider.dart';
 import '../widgets/grid_entry.dart';
 import 'ai_settings_screen.dart';
+import 'card_study_screen.dart';
 import 'import_screen.dart';
 import 'memorize_screen.dart';
 import 'my_questions_screen.dart';
 import 'papers_screen.dart';
+import 'practice_screen.dart';
 import 'type_practice_screen.dart';
 
 /// 首页 Dashboard：进度条 + 宫格入口。
@@ -44,6 +48,18 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: <Widget>[
               _ProgressCard(settings: settings, study: study),
+              if (settings.studyProgress != null) ...[
+                const SizedBox(height: 16),
+                _ResumeCard(
+                  progress: settings.studyProgress!,
+                  onTap: () => _resume(
+                    context,
+                    settings,
+                    study,
+                    settings.studyProgress!,
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               Text(
                 '功能入口',
@@ -60,12 +76,12 @@ class HomeScreen extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.55,
+                childAspectRatio: 1.15,
                 children: <Widget>[
                   GridEntry(
                     icon: Icons.assignment_outlined,
                     title: '成套练习',
-                    subtitle: '5套内置试卷',
+                    subtitle: '10套内置试卷',
                     color: const Color(0xFF4CAF50),
                     onTap: () => _push(context, const PapersScreen()),
                   ),
@@ -116,6 +132,82 @@ class HomeScreen extends StatelessWidget {
   void _push(BuildContext context, Widget page) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => page),
+    );
+  }
+
+  /// 处理「继续上次刷题」：弹窗确认后跳转到对应进度。
+  Future<void> _resume(
+    BuildContext context,
+    SettingsProvider settings,
+    StudyProvider study,
+    StudyProgress progress,
+  ) async {
+    final String unit =
+        progress.kind == ProgressKind.memorize ? '张' : '题';
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('继续上次刷题'),
+        content: Text(
+          '是否继续上次进度？\n${progress.title}\n'
+          '第 ${progress.currentIndex + 1}/${progress.totalCount} $unit',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('放弃'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('继续'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) {
+      await settings.clearStudyProgress();
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    if (progress.kind == ProgressKind.memorize) {
+      final chapter = study.chapterByName(progress.identifier);
+      if (chapter == null) {
+        await settings.clearStudyProgress();
+        return;
+      }
+      _push(
+        context,
+        CardStudyScreen(
+          chapter: chapter,
+          initialPage: progress.currentIndex
+              .clamp(0, chapter.cards.isEmpty ? 0 : chapter.cards.length - 1)
+              .toInt(),
+        ),
+      );
+      return;
+    }
+
+    final List<Question> questions = study.resumeQuestionsFor(progress);
+    if (questions.isEmpty) {
+      await settings.clearStudyProgress();
+      return;
+    }
+    _push(
+      context,
+      PracticeScreen(
+        title: progress.title,
+        questions: questions,
+        resumeKind: progress.kind,
+        resumeIdentifier: progress.identifier,
+        initialIndex: progress.currentIndex
+            .clamp(0, questions.length - 1)
+            .toInt(),
+        randomOrder: progress.randomOrder,
+        randomSeed: progress.randomSeed,
+      ),
     );
   }
 }
@@ -227,6 +319,83 @@ class _ProgressRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 「继续上次刷题」快捷入口卡片。
+class _ResumeCard extends StatelessWidget {
+  const _ResumeCard({required this.progress, required this.onTap});
+
+  final StudyProgress progress;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final String unit = progress.kind == ProgressKind.memorize ? '张' : '题';
+    final String position = progress.totalCount > 0
+        ? '第 ${progress.currentIndex + 1}/${progress.totalCount} $unit'
+        : '';
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.primary.withOpacity(0.5)),
+      ),
+      color: scheme.primary.withOpacity(0.08),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.play_circle_outline, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      '继续上次刷题',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      progress.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (position.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Text(
+                  position,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

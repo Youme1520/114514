@@ -12,6 +12,8 @@ Color typeColor(String type) {
       return const Color(0xFF2196F3);
     case QuestionType.sharedStem:
       return const Color(0xFF9C27B0);
+    case QuestionType.fillBlank:
+      return const Color(0xFF795548);
     case QuestionType.term:
       return const Color(0xFF009688);
     case QuestionType.shortAnswer:
@@ -30,6 +32,8 @@ IconData typeIcon(String type) {
       return Icons.check_circle_outline;
     case QuestionType.sharedStem:
       return Icons.groups_outlined;
+    case QuestionType.fillBlank:
+      return Icons.space_bar_outlined;
     case QuestionType.term:
       return Icons.menu_book_outlined;
     case QuestionType.shortAnswer:

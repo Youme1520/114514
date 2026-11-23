@@ -1,47 +1,58 @@
 import '../models/paper.dart';
 import '../models/question.dart';
 
-/// 内置题库数据：5 套完整试卷，共 135 题。
+import 'exam_data_v2.dart';
+
+/// 旧版内置题库数据：5 套完整试卷，共 135 题（套次重排为 6～10）。
 ///
 /// 数据来源：《医学影像检查技术期末模拟试题》与《影像技术临床操作规范备考要点》。
 /// 每套试卷：单选 10 题、共用题干选择 2 组×3 题、名词解释 5 题、
 /// 简答 5 题、分析题 1 题，满分 100 分。
-
-final List<Paper> builtinPapers = <Paper>[
+///
+/// 新版 5 套试卷（套次 1～5）见 [builtinPapers]（exam_data_v2.dart），
+/// 本文件保留旧版数据并重排为套次 6～10，保证两版题目均不丢失。
+final List<Paper> legacyPapers = <Paper>[
   Paper(
-    set: 1,
-    title: '第一套 影像技术基础与颅脑、鞍区、眼部CT',
+    set: 6,
+    title: '旧版·第一套 影像技术基础与颅脑、鞍区、眼部CT',
     scope: '影像技术基础、CT值、部分容积效应、窗技术、颅脑与鞍区、眼部CT',
     questions: _paper1,
   ),
   Paper(
-    set: 2,
-    title: '第二套 X线摄影基础、体位与数字成像',
+    set: 7,
+    title: '旧版·第二套 X线摄影基础、体位与数字成像',
     scope: 'X线摄影条件、定位线与体位、呼吸方式、CR/DR、对比剂、腰椎摄影',
     questions: _paper2,
   ),
   Paper(
-    set: 3,
-    title: '第三套 鼻窦、耳部、颈部与胸部CT',
+    set: 8,
+    title: '旧版·第三套 鼻窦、耳部、颈部与胸部CT',
     scope: '鼻与鼻窦、耳部、颈部（甲状腺、喉、鼻咽）、胸部CT与HRCT',
     questions: _paper3,
   ),
   Paper(
-    set: 4,
-    title: '第四套 冠状动脉、肺血管、主动脉CTA与腹盆CT',
+    set: 9,
+    title: '旧版·第四套 冠状动脉、肺血管、主动脉CTA与腹盆CT',
     scope: '冠状动脉、肺静脉、肺动脉、主动脉CTA，腹部与盆腔CT',
     questions: _paper4,
   ),
   Paper(
-    set: 5,
-    title: '第五套 脊柱、四肢CT与图像质量控制',
+    set: 10,
+    title: '旧版·第五套 脊柱、四肢CT与图像质量控制',
     scope: '颈胸腰椎、四肢CT，上下肢CTA，图像质量控制与增强后处理',
     questions: _paper5,
   ),
 ];
 
-/// 按套次获取试卷。
-Paper paperOf(int set) => builtinPapers.firstWhere((Paper p) => p.set == set);
+/// 全部内置试卷（新版套次 1～5 + 旧版套次 6～10）。
+final List<Paper> allBuiltinPapers = <Paper>[
+  ...builtinPapers,
+  ...legacyPapers,
+];
+
+/// 按套次获取试卷（跨新旧两版查找）。
+Paper paperOf(int set) =>
+    allBuiltinPapers.firstWhere((Paper p) => p.set == set);
 
 // ============================================================================
 // 第一套
@@ -49,7 +60,7 @@ Paper paperOf(int set) => builtinPapers.firstWhere((Paper p) => p.set == set);
 const List<Question> _paper1 = <Question>[
   // 一、单项选择题
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '影像技术基础',
     stem: '关于CT值，下列叙述正确的是',
@@ -64,7 +75,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '影像技术基础',
     stem: '在同一扫描层面内含有两种以上不同密度组织时，测得的CT值为其平均值，不能真实反映其中任一组织的密度，这一现象称为',
@@ -74,7 +85,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '颅脑CT',
     stem: '颅脑CT常规平扫常以哪条线作为扫描基线',
@@ -84,7 +95,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '颅脑CT',
     stem: '颅脑CT常规平扫的层厚、层间距一般为',
@@ -94,7 +105,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '颅脑CT',
     stem: '观察脑灰白质边界、基底节区的软组织窗，常用窗宽、窗位是',
@@ -109,7 +120,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '颅脑CT',
     stem: '观察颅骨内板、外板和板障应采用',
@@ -124,7 +135,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '鞍区CT',
     stem: '鞍区CT增强扫描的延迟时间一般设为注射对比剂后',
@@ -134,7 +145,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '眼部CT',
     stem: '眼部CT若重点观察视神经管，重建应采用',
@@ -149,7 +160,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '影像技术基础',
     stem: '螺距是指',
@@ -164,7 +175,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.single,
     chapter: '耳部CT',
     stem: '耳部CT平扫的扫描范围是',
@@ -181,7 +192,7 @@ const List<Question> _paper1 = <Question>[
 
   // 二、共用题干选择题（一）
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '颅脑CT',
     groupStem: '患者男，58岁，突发左侧肢体无力3 h，急诊拟行颅脑CT，临床怀疑急性脑梗死。',
@@ -197,7 +208,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '颅脑CTA',
     groupStem: '患者男，58岁，突发左侧肢体无力3 h，急诊拟行颅脑CT，临床怀疑急性脑梗死。',
@@ -213,7 +224,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '颅脑CT',
     groupStem: '患者男，58岁，突发左侧肢体无力3 h，急诊拟行颅脑CT，临床怀疑急性脑梗死。',
@@ -226,7 +237,7 @@ const List<Question> _paper1 = <Question>[
 
   // 二、共用题干选择题（二）
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '鞍区CT',
     groupStem: '患者女，45岁，闭经、泌乳伴视力下降，临床怀疑垂体微腺瘤，拟行鞍区CT增强扫描。',
@@ -242,7 +253,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '鞍区CT',
     groupStem: '患者女，45岁，闭经、泌乳伴视力下降，临床怀疑垂体微腺瘤，拟行鞍区CT增强扫描。',
@@ -258,7 +269,7 @@ const List<Question> _paper1 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.sharedStem,
     chapter: '鞍区CT',
     groupStem: '患者女，45岁，闭经、泌乳伴视力下降，临床怀疑垂体微腺瘤，拟行鞍区CT增强扫描。',
@@ -276,7 +287,7 @@ const List<Question> _paper1 = <Question>[
 
   // 三、名词解释
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: 'CT值',
@@ -285,7 +296,7 @@ const List<Question> _paper1 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '部分容积效应',
@@ -294,7 +305,7 @@ const List<Question> _paper1 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '窗位',
@@ -303,7 +314,7 @@ const List<Question> _paper1 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '螺距',
@@ -312,7 +323,7 @@ const List<Question> _paper1 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '空间分辨力',
@@ -323,7 +334,7 @@ const List<Question> _paper1 = <Question>[
 
   // 四、简答题
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.shortAnswer,
     chapter: 'CT扫描前准备',
     stem: '简述CT扫描前受检者准备的主要内容。',
@@ -332,7 +343,7 @@ const List<Question> _paper1 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.shortAnswer,
     chapter: '颅脑CT',
     stem: '简述颅脑CT常规平扫的体位、扫描基线、扫描范围及主要参数。',
@@ -341,7 +352,7 @@ const List<Question> _paper1 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.shortAnswer,
     chapter: '影像技术基础',
     stem: '简述CT常用三维图像重组方法（MPR、MIP、VR、SSD）及其主要用途。',
@@ -350,7 +361,7 @@ const List<Question> _paper1 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.shortAnswer,
     chapter: '鞍区CT',
     stem: '简述鞍区CT增强扫描的注射参数、延迟时间及动态增强扫描的意义。',
@@ -359,7 +370,7 @@ const List<Question> _paper1 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.shortAnswer,
     chapter: '眼部CT',
     stem: '简述眼部CT的扫描范围与重建要求。',
@@ -370,7 +381,7 @@ const List<Question> _paper1 = <Question>[
 
   // 五、分析题
   Question(
-    paperSet: 1,
+    paperSet: 6,
     type: QuestionType.analysis,
     chapter: '颅脑CT',
     stem: '患者男，62岁，突发剧烈头痛、呕吐伴颈项强直3 h，既往高血压病史10年，急诊拟行颅脑CT检查。请回答：（1）扫描前应做哪些准备（设备、受检者、操作者三方面）；（2）说明体位、扫描基线与扫描范围；（3）列出主要扫描参数及脑组织窗、骨窗的设置；（4）若平扫怀疑动脉瘤破裂所致蛛网膜下腔出血，需加做颅脑CTA，说明对比剂注射方案与延迟时间。',
@@ -386,7 +397,7 @@ const List<Question> _paper1 = <Question>[
 const List<Question> _paper2 = <Question>[
   // 一、单项选择题
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '代表X线穿透力强弱的是',
@@ -396,7 +407,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '决定X线图像密度（亮度）的主要参数是',
@@ -406,7 +417,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '感光效应与源-像距的关系是',
@@ -421,7 +432,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '听眦线与听眶线之间的夹角约为',
@@ -431,7 +442,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '听鼻线与听眦线约成',
@@ -441,7 +452,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '摄影时需加用滤线器的条件是',
@@ -456,7 +467,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: '呼吸方式',
     stem: '肺部及膈上肋骨摄影应采用',
@@ -466,7 +477,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: '呼吸方式',
     stem: '腹部及膈下肋骨摄影应采用',
@@ -476,7 +487,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: 'X线摄影基础',
     stem: '长骨摄影的范围要求是',
@@ -491,7 +502,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.single,
     chapter: '对比剂',
     stem: '关于阳性对比剂，正确的是',
@@ -508,7 +519,7 @@ const List<Question> _paper2 = <Question>[
 
   // 二、共用题干选择题（一）
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '腰椎摄影',
     groupStem: '患者男，45岁，腰部外伤后疼痛，临床拟摄腰椎前后位。',
@@ -524,7 +535,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '腰椎摄影',
     groupStem: '患者男，45岁，腰部外伤后疼痛，临床拟摄腰椎前后位。',
@@ -540,7 +551,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '腰椎摄影',
     groupStem: '患者男，45岁，腰部外伤后疼痛，临床拟摄腰椎前后位。',
@@ -558,7 +569,7 @@ const List<Question> _paper2 = <Question>[
 
   // 二、共用题干选择题（二）
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '高千伏摄影',
     groupStem: '某院采用高千伏摄影技术为患者摄取胸部后前位像。',
@@ -569,7 +580,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '高千伏摄影',
     groupStem: '某院采用高千伏摄影技术为患者摄取胸部后前位像。',
@@ -580,7 +591,7 @@ const List<Question> _paper2 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.sharedStem,
     chapter: '高千伏摄影',
     groupStem: '某院采用高千伏摄影技术为患者摄取胸部后前位像。',
@@ -598,7 +609,7 @@ const List<Question> _paper2 = <Question>[
 
   // 三、名词解释
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '康普顿效应',
@@ -607,7 +618,7 @@ const List<Question> _paper2 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '源-像距（SID）',
@@ -616,7 +627,7 @@ const List<Question> _paper2 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '听眦线',
@@ -625,7 +636,7 @@ const List<Question> _paper2 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.term,
     chapter: '图像质量',
     stem: '伪影',
@@ -634,7 +645,7 @@ const List<Question> _paper2 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '轴位',
@@ -645,7 +656,7 @@ const List<Question> _paper2 = <Question>[
 
   // 四、简答题
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.shortAnswer,
     chapter: 'X线摄影基础',
     stem: '简述影响X线摄影条件的因素，并写出感光效应公式说明各参数的关系。',
@@ -654,7 +665,7 @@ const List<Question> _paper2 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.shortAnswer,
     chapter: '呼吸方式',
     stem: '简述X线摄影中五种呼吸方式及其适用部位。',
@@ -663,7 +674,7 @@ const List<Question> _paper2 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.shortAnswer,
     chapter: 'DR检查技术',
     stem: '简述数字X线摄影检查的基本原则。',
@@ -672,7 +683,7 @@ const List<Question> _paper2 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.shortAnswer,
     chapter: 'DR检查技术',
     stem: '简述CR系统的优点与不足。',
@@ -681,7 +692,7 @@ const List<Question> _paper2 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.shortAnswer,
     chapter: '对比剂',
     stem: '简述X线对比剂的分类、引入途径及理想对比剂应具备的条件。',
@@ -692,7 +703,7 @@ const List<Question> _paper2 = <Question>[
 
   // 五、分析题
   Question(
-    paperSet: 2,
+    paperSet: 7,
     type: QuestionType.analysis,
     chapter: '腰椎摄影',
     stem: '患者男，45岁，高处坠落致腰部疼痛，临床怀疑腰椎骨折，拟摄腰椎正、侧位。请回答：（1）摄影前准备与正位、侧位的体位设计；（2）正位的中心线、照射野与摄影距离；（3）各体位应采用的呼吸方式；（4）患者体厚22 cm，应如何调整摄影条件与滤线设备，为什么。',
@@ -708,7 +719,7 @@ const List<Question> _paper2 = <Question>[
 const List<Question> _paper3 = <Question>[
   // 一、单项选择题
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '鼻与鼻窦CT',
     stem: '鼻与鼻窦CT平扫的扫描基线是',
@@ -718,7 +729,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '鼻与鼻窦CT',
     stem: '观察蝶窦、筛板及额窦有无分隔，通常采用骨算法，其窗宽、窗位为',
@@ -733,7 +744,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '颈部CT',
     stem: '颈部CT增强扫描成人的对比剂用量为',
@@ -743,7 +754,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '颈部CTA',
     stem: '颈部CTA的延迟时间一般为',
@@ -753,7 +764,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '颈部CT',
     stem: '喉部CT扫描时嘱受检者连续发字母“E”音，其目的是',
@@ -768,7 +779,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '胸部CT',
     stem: '常规胸部CT的采集层厚与重建层厚一般为',
@@ -783,7 +794,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '胸部CT',
     stem: '高分辨率CT扫描的层厚和层间距一般为',
@@ -793,7 +804,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '胸部CT',
     stem: '胸部CT观察肺野的肺窗常用',
@@ -808,7 +819,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '胸部CT',
     stem: '胸部CT常规增强扫描的延迟时间一般为',
@@ -818,7 +829,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.single,
     chapter: '颈部CT',
     stem: '甲状腺CT扫描的扫描范围是',
@@ -835,7 +846,7 @@ const List<Question> _paper3 = <Question>[
 
   // 二、共用题干选择题（一）
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '胸部CT',
     groupStem: '患者男，52岁，反复咳嗽、咳痰10年，近半年咯血，临床怀疑支气管扩张，拟行胸部CT检查。',
@@ -851,7 +862,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '胸部CT',
     groupStem: '患者男，52岁，反复咳嗽、咳痰10年，近半年咯血，临床怀疑支气管扩张，拟行胸部CT检查。',
@@ -867,7 +878,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '胸部CT',
     groupStem: '患者男，52岁，反复咳嗽、咳痰10年，近半年咯血，临床怀疑支气管扩张，拟行胸部CT检查。',
@@ -885,7 +896,7 @@ const List<Question> _paper3 = <Question>[
 
   // 二、共用题干选择题（二）
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '颈部CT',
     groupStem: '患者女，60岁，发现颈部肿块3个月，拟行颈部CT增强扫描。',
@@ -901,7 +912,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '颈部CT',
     groupStem: '患者女，60岁，发现颈部肿块3个月，拟行颈部CT增强扫描。',
@@ -917,7 +928,7 @@ const List<Question> _paper3 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.sharedStem,
     chapter: '颈部CT',
     groupStem: '患者女，60岁，发现颈部肿块3个月，拟行颈部CT增强扫描。',
@@ -935,7 +946,7 @@ const List<Question> _paper3 = <Question>[
 
   // 三、名词解释
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '密度分辨力',
@@ -944,7 +955,7 @@ const List<Question> _paper3 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '时间分辨力',
@@ -953,7 +964,7 @@ const List<Question> _paper3 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.term,
     chapter: '胸部CT',
     stem: 'HRCT',
@@ -962,7 +973,7 @@ const List<Question> _paper3 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '窗宽',
@@ -971,7 +982,7 @@ const List<Question> _paper3 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '体素',
@@ -982,7 +993,7 @@ const List<Question> _paper3 = <Question>[
 
   // 四、简答题
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.shortAnswer,
     chapter: 'CT扫描前准备',
     stem: '简述CT扫描前的设备准备要点。',
@@ -991,7 +1002,7 @@ const List<Question> _paper3 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.shortAnswer,
     chapter: '鼻与鼻窦CT',
     stem: '简述鼻与鼻窦CT的扫描体位、基线、范围及重建要求。',
@@ -1000,7 +1011,7 @@ const List<Question> _paper3 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.shortAnswer,
     chapter: '颈部CT',
     stem: '简述颈部CT中甲状腺、喉部、鼻咽部各自的扫描范围。',
@@ -1009,7 +1020,7 @@ const List<Question> _paper3 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.shortAnswer,
     chapter: '胸部CT',
     stem: '简述胸部CT平扫的体位、参数，以及高分辨率成像的适应证与参数。',
@@ -1018,7 +1029,7 @@ const List<Question> _paper3 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.shortAnswer,
     chapter: '耳部CT',
     stem: '简述耳部CT的扫描范围、重建算法与窗技术。',
@@ -1029,7 +1040,7 @@ const List<Question> _paper3 = <Question>[
 
   // 五、分析题
   Question(
-    paperSet: 3,
+    paperSet: 8,
     type: QuestionType.analysis,
     chapter: '颈部CT',
     stem: '患者男，55岁，声嘶3个月，喉镜发现声带肿物，拟行颈部（喉部）CT增强扫描。请回答：（1）扫描范围与体位要点；（2）扫描时为何嘱受检者发“E”音；（3）增强扫描的对比剂用量、流率与延迟时间；（4）窗技术与后处理方法的选择。',
@@ -1045,7 +1056,7 @@ const List<Question> _paper3 = <Question>[
 const List<Question> _paper4 = <Question>[
   // 一、单项选择题
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '冠状动脉CTA',
     stem: '64层及以上CT行冠状动脉CTA检查，心率一般应控制在',
@@ -1055,7 +1066,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '冠状动脉CTA',
     stem: '冠状动脉CTA采用实时血流检测法时，监测层面与阈值通常为',
@@ -1070,7 +1081,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '冠状动脉CTA',
     stem: '冠状动脉CTA增强图像的窗宽、窗位常用',
@@ -1085,7 +1096,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '冠状动脉CTA',
     stem: '心率小于65次/min时，冠状动脉重建时相宜选择',
@@ -1100,7 +1111,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '肺静脉与左心房CT',
     stem: '肺静脉与左心房CT的扫描范围是',
@@ -1115,7 +1126,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '肺动脉CTA',
     stem: '肺动脉CTA采用自动触发扫描时，阈值和感兴趣区（ROI）为',
@@ -1130,7 +1141,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '肺动脉CTA',
     stem: '肺动脉CTA中，BMI＞25 kg/m²者管电压宜采用',
@@ -1140,7 +1151,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '主动脉CTA',
     stem: '主动脉CTA自动触发扫描的阈值和ROI为',
@@ -1155,7 +1166,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '腹部CT',
     stem: '腹部CT检查前的禁食要求是',
@@ -1165,7 +1176,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.single,
     chapter: '腹部CT',
     stem: '肝脏CT增强扫描动脉期、门静脉期、实质期的延迟时间分别为',
@@ -1182,7 +1193,7 @@ const List<Question> _paper4 = <Question>[
 
   // 二、共用题干选择题（一）
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '肺动脉CTA',
     groupStem: '患者男，68岁，突发胸痛、气促，D-二聚体升高，BMI 28 kg/m²，临床怀疑肺动脉栓塞，拟行肺动脉CTA。',
@@ -1193,7 +1204,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '肺动脉CTA',
     groupStem: '患者男，68岁，突发胸痛、气促，D-二聚体升高，BMI 28 kg/m²，临床怀疑肺动脉栓塞，拟行肺动脉CTA。',
@@ -1209,7 +1220,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '肺动脉CTA',
     groupStem: '患者男，68岁，突发胸痛、气促，D-二聚体升高，BMI 28 kg/m²，临床怀疑肺动脉栓塞，拟行肺动脉CTA。',
@@ -1227,7 +1238,7 @@ const List<Question> _paper4 = <Question>[
 
   // 二、共用题干选择题（二）
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '腹部CT',
     groupStem: '患者女，50岁，右上腹隐痛，超声发现肝占位，拟行腹部CT增强扫描。',
@@ -1243,7 +1254,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '腹部CT',
     groupStem: '患者女，50岁，右上腹隐痛，超声发现肝占位，拟行腹部CT增强扫描。',
@@ -1259,7 +1270,7 @@ const List<Question> _paper4 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.sharedStem,
     chapter: '腹部CT',
     groupStem: '患者女，50岁，右上腹隐痛，超声发现肝占位，拟行腹部CT增强扫描。',
@@ -1277,7 +1288,7 @@ const List<Question> _paper4 = <Question>[
 
   // 三、名词解释
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.term,
     chapter: '增强扫描',
     stem: '团注',
@@ -1286,7 +1297,7 @@ const List<Question> _paper4 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.term,
     chapter: '增强扫描',
     stem: '增强扫描',
@@ -1295,7 +1306,7 @@ const List<Question> _paper4 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '薄层扫描',
@@ -1304,7 +1315,7 @@ const List<Question> _paper4 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '间距',
@@ -1313,7 +1324,7 @@ const List<Question> _paper4 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '矩阵',
@@ -1324,7 +1335,7 @@ const List<Question> _paper4 = <Question>[
 
   // 四、简答题
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.shortAnswer,
     chapter: '冠状动脉CTA',
     stem: '简述冠状动脉CTA检查前的相关准备。',
@@ -1333,7 +1344,7 @@ const List<Question> _paper4 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.shortAnswer,
     chapter: '增强扫描',
     stem: '简述确定CT增强扫描或CTA启动扫描时间的三种方法及其优缺点。',
@@ -1342,7 +1353,7 @@ const List<Question> _paper4 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.shortAnswer,
     chapter: '腹部CT',
     stem: '简述腹部CT平扫按器官划分的扫描基线与扫描范围。',
@@ -1351,7 +1362,7 @@ const List<Question> _paper4 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.shortAnswer,
     chapter: '腹部CT',
     stem: '简述腹部CT增强扫描中肝脏、胰腺、肾脏的扫描期相与延迟时间。',
@@ -1360,7 +1371,7 @@ const List<Question> _paper4 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.shortAnswer,
     chapter: 'CTA',
     stem: '简述肺动脉CTA与主动脉CTA在触发阈值和ROI选择上的区别。',
@@ -1371,7 +1382,7 @@ const List<Question> _paper4 = <Question>[
 
   // 五、分析题
   Question(
-    paperSet: 4,
+    paperSet: 9,
     type: QuestionType.analysis,
     chapter: '主动脉CTA',
     stem: '患者男，72岁，突发撕裂样胸背痛4 h，血压180/100 mmHg，BMI 26 kg/m²，临床怀疑主动脉夹层，拟行主动脉CTA。请回答：（1）扫描体位与扫描范围；（2）管电压、层厚与重建算法；（3）对比剂注射方案及延迟时间的确定方法（阈值与ROI）；（4）图像后处理方法与影像质量标准。',
@@ -1387,7 +1398,7 @@ const List<Question> _paper4 = <Question>[
 const List<Question> _paper5 = <Question>[
   // 一、单项选择题
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '脊柱CT',
     stem: '颈椎CT扫描的体位要点是',
@@ -1402,7 +1413,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '脊柱CT',
     stem: '胸椎CT扫描时受检者应',
@@ -1412,7 +1423,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '脊柱CT',
     stem: '腰椎CT扫描时使用腿垫的目的是',
@@ -1427,7 +1438,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '脊柱CT',
     stem: '腰椎间盘CT常规扫描的椎间隙是',
@@ -1442,7 +1453,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '四肢CT',
     stem: '四肢CT检查的进床方向通常是',
@@ -1457,7 +1468,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '四肢CT',
     stem: '四肢骨关节CT常规平扫的参数是',
@@ -1472,7 +1483,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '四肢CT',
     stem: '四肢CT的骨窗常用',
@@ -1487,7 +1498,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '下肢动脉CTA',
     stem: '下肢动脉CTA的扫描范围和曝光时间要求是',
@@ -1502,7 +1513,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '下肢静脉CTA',
     stem: '下肢静脉CTA间接法的延迟时间为',
@@ -1512,7 +1523,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.single,
     chapter: '脊柱CT',
     stem: '关于脊柱CT增强扫描，正确的是',
@@ -1529,7 +1540,7 @@ const List<Question> _paper5 = <Question>[
 
   // 二、共用题干选择题（一）
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '腰椎CT',
     groupStem: '患者女，55岁，腰痛伴右下肢放射痛2个月，临床怀疑腰椎间盘突出，拟行腰椎CT检查。',
@@ -1545,7 +1556,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '腰椎CT',
     groupStem: '患者女，55岁，腰痛伴右下肢放射痛2个月，临床怀疑腰椎间盘突出，拟行腰椎CT检查。',
@@ -1556,7 +1567,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '腰椎CT',
     groupStem: '患者女，55岁，腰痛伴右下肢放射痛2个月，临床怀疑腰椎间盘突出，拟行腰椎CT检查。',
@@ -1574,7 +1585,7 @@ const List<Question> _paper5 = <Question>[
 
   // 二、共用题干选择题（二）
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '下肢动脉CTA',
     groupStem: '患者男，60岁，双下肢间歇性跛行1年，拟行下肢动脉CTA。',
@@ -1590,7 +1601,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '下肢动脉CTA',
     groupStem: '患者男，60岁，双下肢间歇性跛行1年，拟行下肢动脉CTA。',
@@ -1606,7 +1617,7 @@ const List<Question> _paper5 = <Question>[
     score: 2,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.sharedStem,
     chapter: '下肢动脉CTA',
     groupStem: '患者男，60岁，双下肢间歇性跛行1年，拟行下肢动脉CTA。',
@@ -1624,7 +1635,7 @@ const List<Question> _paper5 = <Question>[
 
   // 三、名词解释
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.term,
     chapter: '影像技术基础',
     stem: '像素',
@@ -1633,7 +1644,7 @@ const List<Question> _paper5 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.term,
     chapter: '增强扫描',
     stem: '造影扫描',
@@ -1642,7 +1653,7 @@ const List<Question> _paper5 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.term,
     chapter: '图像质量',
     stem: '信噪比（SNR）',
@@ -1651,7 +1662,7 @@ const List<Question> _paper5 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '源物距',
@@ -1660,7 +1671,7 @@ const List<Question> _paper5 = <Question>[
     score: 3,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.term,
     chapter: 'X线摄影基础',
     stem: '物像距',
@@ -1671,7 +1682,7 @@ const List<Question> _paper5 = <Question>[
 
   // 四、简答题
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.shortAnswer,
     chapter: '脊柱CT',
     stem: '简述颈椎、胸椎、腰椎CT扫描体位的要点，以及腰椎间盘常规扫描范围。',
@@ -1680,7 +1691,7 @@ const List<Question> _paper5 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.shortAnswer,
     chapter: '四肢CT',
     stem: '简述四肢骨关节CT的常规扫描参数、窗技术与后处理。',
@@ -1689,7 +1700,7 @@ const List<Question> _paper5 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.shortAnswer,
     chapter: '四肢CTA',
     stem: '简述上、下肢CTA的扫描范围、注射方案与延迟时间的特点。',
@@ -1698,7 +1709,7 @@ const List<Question> _paper5 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.shortAnswer,
     chapter: '图像质量',
     stem: '简述CT图像质量控制的主要内容。',
@@ -1707,7 +1718,7 @@ const List<Question> _paper5 = <Question>[
     score: 6,
   ),
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.shortAnswer,
     chapter: '增强扫描',
     stem: '简述CT增强检查结束后对受检者的观察与不良事件处理要求。',
@@ -1718,7 +1729,7 @@ const List<Question> _paper5 = <Question>[
 
   // 五、分析题
   Question(
-    paperSet: 5,
+    paperSet: 10,
     type: QuestionType.analysis,
     chapter: '四肢CT',
     stem: '患者男，35岁，车祸伤后右膝肿痛、活动受限，X线片可疑胫骨平台骨折，拟行右膝关节CT。请回答：（1）体位与进床方向、扫描范围要求；（2）扫描参数与重建算法；（3）图像后处理与窗技术；（4）若临床怀疑合并血管损伤，说明下肢动脉CTA的扫描范围、注射方案与触发方式。',

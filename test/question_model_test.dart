@@ -7,11 +7,25 @@ void main() {
     test('客观题与主观题判断', () {
       expect(QuestionType.isObjective(QuestionType.single), isTrue);
       expect(QuestionType.isObjective(QuestionType.sharedStem), isTrue);
+      expect(QuestionType.isObjective(QuestionType.fillBlank), isTrue);
       expect(QuestionType.isObjective(QuestionType.term), isFalse);
       expect(QuestionType.isSubjective(QuestionType.term), isTrue);
       expect(QuestionType.isSubjective(QuestionType.shortAnswer), isTrue);
       expect(QuestionType.isSubjective(QuestionType.analysis), isTrue);
       expect(QuestionType.isSubjective(QuestionType.single), isFalse);
+      expect(QuestionType.isSubjective(QuestionType.fillBlank), isFalse);
+    });
+
+    test('填空题空位答案拆分', () {
+      const Question q = Question(
+        paperSet: 1,
+        type: QuestionType.fillBlank,
+        stem: '摄影时肢体________并与探测器________。',
+        answer: '贴近；平行',
+        score: 2,
+      );
+      expect(q.isFillBlank, isTrue);
+      expect(q.fillBlankAnswers, <String>['贴近', '平行']);
     });
   });
 
@@ -81,6 +95,19 @@ void main() {
       expect(q.options, isEmpty);
       expect(q.answer, '');
       expect(q.score, 0.0);
+    });
+
+    test('填空题题型与分号答案解析', () {
+      final Question q = Question.fromJson(<String, dynamic>{
+        'type': '填空',
+        'stem': '摄影时肢体________探测器。',
+        'answer': '贴近；平行',
+        'score': 2,
+      });
+      expect(q.type, QuestionType.fillBlank);
+      expect(q.isFillBlank, isTrue);
+      expect(q.isObjective, isTrue);
+      expect(q.fillBlankAnswers, <String>['贴近', '平行']);
     });
   });
 

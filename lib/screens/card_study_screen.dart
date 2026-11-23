@@ -2,26 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/knowledge_card.dart';
+import '../models/study_progress.dart';
+import '../providers/settings_provider.dart';
 import '../providers/study_provider.dart';
+import '../widgets/common.dart';
 
 /// 翻卡背诵页：左右翻页，点击翻面，可标记掌握。
 class CardStudyScreen extends StatefulWidget {
-  const CardStudyScreen({super.key, required this.chapter});
+  const CardStudyScreen({super.key, required this.chapter, this.initialPage = 0});
 
   final KnowledgeChapter chapter;
+
+  /// 初始卡片页码（用于断点续传恢复）。
+  final int initialPage;
 
   @override
   State<CardStudyScreen> createState() => _CardStudyScreenState();
 }
 
 class _CardStudyScreenState extends State<CardStudyScreen> {
-  final PageController _pageController = PageController();
-  int _page = 0;
+  late final PageController _pageController;
+  late int _page;
+
+  @override
+  void initState() {
+    super.initState();
+    final int total = widget.chapter.cards.length;
+    _page = widget.initialPage.clamp(0, total == 0 ? 0 : total - 1).toInt();
+    _pageController = PageController(initialPage: _page);
+    if (total > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _saveProgress(_page);
+      });
+    }
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _saveProgress(int page) {
+    context.read<SettingsProvider>().saveStudyProgress(
+          StudyProgress(
+            kind: ProgressKind.memorize,
+            title: widget.chapter.name,
+            identifier: widget.chapter.name,
+            chapter: widget.chapter.name,
+            currentIndex: page,
+            totalCount: widget.chapter.cards.length,
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
   }
 
   int _globalIndex(KnowledgeCard card) {
@@ -36,6 +69,12 @@ class _CardStudyScreenState extends State<CardStudyScreen> {
   Widget build(BuildContext context) {
     final StudyProvider study = context.watch<StudyProvider>();
     final List<KnowledgeCard> cards = widget.chapter.cards;
+    if (cards.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.chapter.name)),
+        body: const EmptyView(icon: Icons.style_outlined, message: '该章节暂无卡片'),
+      );
+    }
     final KnowledgeCard current = cards[_page];
     final int globalIndex = _globalIndex(current);
     final bool mastered =
@@ -75,7 +114,10 @@ class _CardStudyScreenState extends State<CardStudyScreen> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: cards.length,
-              onPageChanged: (int i) => setState(() => _page = i),
+              onPageChanged: (int i) {
+                setState(() => _page = i);
+                _saveProgress(i);
+              },
               itemBuilder: (BuildContext context, int i) {
                 return Padding(
                   padding: const EdgeInsets.all(20),

@@ -34,7 +34,7 @@ class PapersScreen extends StatelessWidget {
                   '分题型刷题',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: const Text('单选 / 共用题干 / 名词解释 / 简答 / 分析'),
+                subtitle: const Text('单选 / 共用题干 / 填空 / 名词解释 / 简答 / 分析'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -44,7 +44,7 @@ class PapersScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SectionTitle('内置试卷（5套）'),
+          SectionTitle('内置试卷（${study.papers.length}套）'),
           for (final Paper paper in study.papers) _PaperCard(paper: paper),
         ],
       ),

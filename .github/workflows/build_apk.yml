@@ -53,6 +53,10 @@ jobs:
       - name: 安装依赖 (flutter pub get)
         run: flutter pub get
 
+      # 5.1 运行单元测试（解析/判分/断点续传/数据完整性）
+      - name: 运行单元测试 (flutter test)
+        run: flutter test
+
       # 5.5 配置 Android 应用名与网络权限
       #     - 将应用显示名改为「影像技术刷题宝」
       #     - 确保 AndroidManifest 声明 INTERNET 权限（AI 接口联网必需）

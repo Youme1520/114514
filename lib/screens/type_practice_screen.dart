@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/question.dart';
+import '../models/study_progress.dart';
 import '../providers/study_provider.dart';
 import '../widgets/common.dart';
 import 'practice_screen.dart';
@@ -38,46 +39,76 @@ class _TypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color color = typeColor(type);
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final VoidCallback? onStart = count == 0
+        ? null
+        : () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PracticeScreen(
+                  title: '$type · 专项练习',
+                  questions: context.read<StudyProvider>().questionsByType(type),
+                  resumeKind: ProgressKind.type,
+                  resumeIdentifier: type,
+                ),
+              ),
+            );
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(typeIcon(type), color: color),
-        ),
-        title: Text(
-          type,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          '共 $count 题',
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: FilledButton.tonal(
-          onPressed: count == 0
-              ? null
-              : () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => PracticeScreen(
-                        title: '$type · 专项练习',
-                        questions: context
-                            .read<StudyProvider>()
-                            .questionsByType(type),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onStart,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(typeIcon(type), color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      type,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-          child: const Text('开始'),
+                    const SizedBox(height: 2),
+                    Text(
+                      '共 $count 题',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.tonal(
+                onPressed: onStart,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                ),
+                child: const Text('开始'),
+              ),
+            ],
+          ),
         ),
       ),
     );

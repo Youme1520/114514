@@ -2,13 +2,14 @@ import 'dart:convert';
 
 /// 题型常量定义。
 ///
-/// 题库包含五种题型：单选题、共用题干选择题、名词解释、简答题、分析题。
-/// 其中单选与共用题干为客观题（可自动判分），其余为主观题（需自评或 AI 批改）。
+/// 题库包含六种题型：单选题、共用题干选择题、填空题、名词解释、简答题、分析题。
+/// 其中单选、共用题干与填空为客观题（可自动判分），其余为主观题（需自评或 AI 批改）。
 class QuestionType {
   QuestionType._();
 
   static const String single = '单选';
   static const String sharedStem = '共用题干选择';
+  static const String fillBlank = '填空';
   static const String term = '名词解释';
   static const String shortAnswer = '简答';
   static const String analysis = '分析题';
@@ -16,14 +17,15 @@ class QuestionType {
   static const List<String> all = <String>[
     single,
     sharedStem,
+    fillBlank,
     term,
     shortAnswer,
     analysis,
   ];
 
-  /// 判断是否为客观题（单选/共用题干选择）。
+  /// 判断是否为客观题（单选/共用题干选择/填空）。
   static bool isObjective(String type) =>
-      type == single || type == sharedStem;
+      type == single || type == sharedStem || type == fillBlank;
 
   /// 判断是否为主观题（名词解释/简答/分析题）。
   static bool isSubjective(String type) =>
@@ -41,6 +43,7 @@ class QuestionSource {
 /// 题目数据模型。
 ///
 /// 客观题 [options] 存选项文本，[answer] 存选项字母（A/B/C/D）；
+/// 填空题 [options] 为空，[answer] 用「；」分隔多个空位的答案；
 /// 主观题 [options] 为空，[answer] 存参考答案全文。
 class Question {
   const Question({
@@ -60,7 +63,7 @@ class Question {
   /// 数据库主键（内置题为 null，导入题为自增 id）。
   final int? id;
 
-  /// 套次，1～5 为内置试卷，0 表示导入题。
+  /// 套次，1～10 为内置试卷，0 表示导入题。
   final int paperSet;
 
   /// 题型，取值见 [QuestionType]。
@@ -78,7 +81,7 @@ class Question {
   /// 选项列表（客观题）。
   final List<String> options;
 
-  /// 答案：客观题为字母，主观题为参考答案全文。
+  /// 答案：选择题为字母，填空题为「；」分隔的空位答案，主观题为参考答案全文。
   final String answer;
 
   /// 解析 / 评分要点。
@@ -93,6 +96,19 @@ class Question {
   bool get isObjective => QuestionType.isObjective(type);
 
   bool get isSubjective => QuestionType.isSubjective(type);
+
+  /// 是否为填空题（客观题中的特殊题型，需要逐空判分）。
+  bool get isFillBlank => type == QuestionType.fillBlank;
+
+  /// 填空题各空位答案（按「；」或「;」拆分，去除首尾空白与空项）。
+  List<String> get fillBlankAnswers {
+    if (!isFillBlank) return const <String>[];
+    return answer
+        .split(RegExp(r'[；;]'))
+        .map((String e) => e.trim())
+        .where((String e) => e.isNotEmpty)
+        .toList();
+  }
 
   /// 转换为数据库 Map（选项序列化为 JSON 字符串）。
   Map<String, dynamic> toMap() {

@@ -99,8 +99,8 @@ class ProfileScreen extends StatelessWidget {
                       SizedBox(height: 6),
                       Text(
                         '医学影像技术备考刷题与背诵工具。\n'
-                        '内置 5 套试卷（135 题）与 25 个章节知识卡片，'
-                        '支持 JSON/CSV 导入与 AI 深度解析、主观题批改。\n版本 1.0.0',
+                        '内置 10 套试卷（新版 180 题 + 旧版 135 题）与 25 个章节知识卡片，'
+                        '支持填空题、JSON/CSV 导入与 AI 深度解析、主观题批改。\n版本 1.1.0',
                         style: TextStyle(fontSize: 13, height: 1.6),
                       ),
                     ],

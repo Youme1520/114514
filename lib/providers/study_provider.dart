@@ -5,6 +5,7 @@ import '../data/knowledge_data.dart';
 import '../models/knowledge_card.dart';
 import '../models/paper.dart';
 import '../models/question.dart';
+import '../models/study_progress.dart';
 import '../services/database_service.dart';
 import '../services/import_service.dart';
 import '../services/settings_service.dart';
@@ -22,8 +23,8 @@ class StudyProvider extends ChangeNotifier {
   Set<int> _memorized = <int>{};
   bool _loaded = false;
 
-  /// 内置试卷。
-  List<Paper> get papers => builtinPapers;
+  /// 内置试卷（新版 1～5 + 旧版 6～10）。
+  List<Paper> get papers => allBuiltinPapers;
 
   /// 背诵章节。
   List<KnowledgeChapter> get chapters => knowledgeChapters;
@@ -33,7 +34,36 @@ class StudyProvider extends ChangeNotifier {
 
   /// 全部内置题目。
   List<Question> get builtinQuestions =>
-      <Question>[for (final Paper p in builtinPapers) ...p.questions];
+      <Question>[for (final Paper p in allBuiltinPapers) ...p.questions];
+
+  /// 按套次查找内置试卷。
+  Paper? paperBySet(int set) {
+    for (final Paper p in allBuiltinPapers) {
+      if (p.set == set) return p;
+    }
+    return null;
+  }
+
+  /// 按名称查找背诵章节。
+  KnowledgeChapter? chapterByName(String name) {
+    for (final KnowledgeChapter c in knowledgeChapters) {
+      if (c.name == name) return c;
+    }
+    return null;
+  }
+
+  /// 根据断点续传进度重建题目列表（用于恢复刷题）。
+  List<Question> resumeQuestionsFor(StudyProgress progress) {
+    switch (progress.kind) {
+      case ProgressKind.paper:
+        final Paper? paper = paperBySet(int.tryParse(progress.identifier) ?? -1);
+        return paper?.questions ?? const <Question>[];
+      case ProgressKind.type:
+        return questionsByType(progress.identifier);
+      default:
+        return const <Question>[];
+    }
+  }
 
   /// 导入题目（不可变视图）。
   List<Question> get importedQuestions => List<Question>.unmodifiable(_imported);

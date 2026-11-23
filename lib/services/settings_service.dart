@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/ai_config.dart';
+import '../models/study_progress.dart';
 
-/// 本地配置服务：主题、AI 配置、学习统计与背诵进度。
+/// 本地配置服务：主题、AI 配置、学习统计、背诵进度与断点续传。
 class SettingsService {
   SettingsService();
 
@@ -12,6 +13,7 @@ class SettingsService {
   static const String _keyAnswered = 'stat_answered';
   static const String _keyCorrect = 'stat_correct';
   static const String _keyMemorized = 'memorized_cards';
+  static const String _keyStudyProgress = 'study_progress';
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -85,6 +87,24 @@ class SettingsService {
     final List<String> raw =
         indexes.map((int e) => e.toString()).toList()..sort();
     await prefs.setStringList(_keyMemorized, raw);
+  }
+
+  /// 读取断点续传进度（无进度返回 null）。
+  Future<StudyProgress?> getStudyProgress() async {
+    final SharedPreferences prefs = await _prefs;
+    return StudyProgress.fromJsonString(prefs.getString(_keyStudyProgress));
+  }
+
+  /// 保存断点续传进度。
+  Future<void> setStudyProgress(StudyProgress progress) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setString(_keyStudyProgress, progress.toJsonString());
+  }
+
+  /// 清除断点续传进度。
+  Future<void> clearStudyProgress() async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.remove(_keyStudyProgress);
   }
 
   /// 将配置编码为 JSON 字符串（带容错）。

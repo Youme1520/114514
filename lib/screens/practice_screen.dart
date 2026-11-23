@@ -3,52 +3,116 @@ import 'package:provider/provider.dart';
 
 import '../models/ai_config.dart';
 import '../models/question.dart';
+import '../models/study_progress.dart';
 import '../providers/settings_provider.dart';
 import '../services/ai_service.dart';
+import '../utils/fill_blank_grader.dart';
 import '../utils/format.dart';
+import '../utils/shuffle.dart';
 import '../widgets/common.dart';
 import '../widgets/option_tile.dart';
 import 'result_screen.dart';
 
-/// 练习页：逐题作答，支持客观题自动判分与主观题自评/AI 批改。
+/// 练习页：逐题作答，支持客观题自动判分、填空题逐空判分与主观题自评/AI 批改。
 class PracticeScreen extends StatefulWidget {
   const PracticeScreen({
     super.key,
     required this.title,
     required this.questions,
+    this.resumeKind,
+    this.resumeIdentifier,
+    this.initialIndex = 0,
+    this.randomOrder = false,
+    this.randomSeed = 0,
   });
 
   final String title;
   final List<Question> questions;
+
+  /// 断点续传：进度种类（[ProgressKind.paper] / [ProgressKind.type]）。
+  final String? resumeKind;
+
+  /// 断点续传：用于重建题目的标识（套次或题型名）。
+  final String? resumeIdentifier;
+
+  /// 初始题号（从 0 开始，用于恢复进度）。
+  final int initialIndex;
+
+  /// 是否随机顺序模式。
+  final bool randomOrder;
+
+  /// 随机顺序种子。
+  final int randomSeed;
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
 }
 
 class _PracticeScreenState extends State<PracticeScreen> {
-  late final List<double> _earned =
-      List<double>.filled(widget.questions.length, 0);
-  late final List<String> _answers =
-      List<String>.filled(widget.questions.length, '');
-  late final List<bool> _done = List<bool>.filled(widget.questions.length, false);
+  late List<Question> _ordered;
+  late List<double> _earned;
+  late List<String> _answers;
+  late List<bool> _done;
+  late List<List<TextEditingController>> _fillControllers;
 
   int _index = 0;
   bool _showAnswer = false;
   bool _aiLoading = false;
   double? _aiScore;
   String? _aiFeedback;
+  bool _random = false;
+  int _seed = 0;
   final TextEditingController _controller = TextEditingController();
 
-  Question get _q => widget.questions[_index];
+  Question get _q => _ordered[_index];
 
   bool get _answered => _done[_index];
 
   int get _answeredCount => _done.where((bool e) => e).length;
 
   @override
+  void initState() {
+    super.initState();
+    _random = widget.randomOrder;
+    _seed = widget.randomSeed == 0
+        ? DateTime.now().millisecondsSinceEpoch
+        : widget.randomSeed;
+    _ordered = _random
+        ? seededShuffle(widget.questions, _seed)
+        : List<Question>.from(widget.questions);
+    _index = widget.initialIndex
+        .clamp(0, _ordered.isEmpty ? 0 : _ordered.length - 1)
+        .toInt();
+    _earned = List<double>.filled(_ordered.length, 0);
+    _answers = List<String>.filled(_ordered.length, '');
+    _done = List<bool>.filled(_ordered.length, false);
+    _fillControllers = <List<TextEditingController>>[
+      for (final Question q in _ordered) _buildFillControllers(q),
+    ];
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _disposeFillControllers();
     super.dispose();
+  }
+
+  List<TextEditingController> _buildFillControllers(Question q) {
+    if (!q.isFillBlank) return const <TextEditingController>[];
+    final int n = q.fillBlankAnswers.isEmpty ? 1 : q.fillBlankAnswers.length;
+    return List<TextEditingController>.generate(
+      n,
+      (_) => TextEditingController(),
+    );
+  }
+
+  void _disposeFillControllers() {
+    for (final List<TextEditingController> list in _fillControllers) {
+      for (final TextEditingController c in list) {
+        c.dispose();
+      }
+    }
   }
 
   void _toast(String message) {
@@ -58,13 +122,29 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   void _goTo(int index) {
+    if (index < 0 || index >= _ordered.length) return;
     setState(() {
       _index = index;
       _showAnswer = false;
       _aiScore = null;
       _aiFeedback = null;
       _controller.text = _answers[index];
+      _syncFillControllersFromAnswer(index);
     });
+    _persistProgress();
+  }
+
+  void _syncFillControllersFromAnswer(int index) {
+    final List<String> blanks = FillBlankGrader.splitBlanks(_answers[index]);
+    final List<TextEditingController> ctrls = _fillControllers[index];
+    for (int i = 0; i < ctrls.length; i++) {
+      ctrls[i].text = i < blanks.length ? blanks[i] : '';
+    }
+  }
+
+  void _syncFillAnswers() {
+    final List<TextEditingController> ctrls = _fillControllers[_index];
+    _answers[_index] = ctrls.map((TextEditingController c) => c.text.trim()).join('；');
   }
 
   void _selectOption(int i) {
@@ -77,6 +157,24 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _earned[_index] = correct ? _q.score : 0;
     });
     context.read<SettingsProvider>().recordAnswer(correct: correct);
+    _persistProgress();
+  }
+
+  void _submitFillBlank() {
+    if (_answered) return;
+    _syncFillAnswers();
+    final FillBlankResult result = FillBlankGrader.grade(
+      userAnswer: _answers[_index],
+      correctAnswer: _q.answer,
+      totalScore: _q.score,
+    );
+    setState(() {
+      _done[_index] = true;
+      _earned[_index] = result.earnedScore;
+      _showAnswer = true;
+    });
+    context.read<SettingsProvider>().recordAnswer(correct: result.allCorrect);
+    _persistProgress();
   }
 
   void _revealAnswer() {
@@ -91,6 +189,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _earned[_index] = earned;
     });
     context.read<SettingsProvider>().recordAnswer(correct: fraction >= 1.0);
+    _persistProgress();
   }
 
   Future<void> _aiGrade() async {
@@ -118,6 +217,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       context
           .read<SettingsProvider>()
           .recordAnswer(correct: result.score >= _q.score * 0.6);
+      _persistProgress();
     } catch (e) {
       if (mounted) _toast('AI 批改失败：$e');
     } finally {
@@ -142,15 +242,38 @@ class _PracticeScreenState extends State<PracticeScreen> {
     );
   }
 
+  void _persistProgress() {
+    if (widget.resumeKind == null || widget.resumeIdentifier == null) return;
+    context.read<SettingsProvider>().saveStudyProgress(
+          StudyProgress(
+            kind: widget.resumeKind!,
+            title: widget.title,
+            identifier: widget.resumeIdentifier!,
+            currentIndex: _index,
+            totalCount: _ordered.length,
+            randomOrder: _random,
+            randomSeed: _seed,
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+  }
+
+  void _clearProgress() {
+    if (widget.resumeKind != null) {
+      context.read<SettingsProvider>().clearStudyProgress();
+    }
+  }
+
   void _next() {
-    if (_index < widget.questions.length - 1) {
+    if (_index < _ordered.length - 1) {
       _goTo(_index + 1);
     } else {
+      _clearProgress();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => ResultScreen(
             title: widget.title,
-            questions: widget.questions,
+            questions: _ordered,
             answers: _answers,
             earned: _earned,
           ),
@@ -159,17 +282,128 @@ class _PracticeScreenState extends State<PracticeScreen> {
     }
   }
 
+  Future<bool> _confirmOrderChange() async {
+    if (_answeredCount == 0) return true;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('切换顺序'),
+        content: const Text('切换顺序将重置当前作答进度，确定继续？'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  void _setOrder(bool random) {
+    if (_random == random) return;
+    setState(() {
+      _random = random;
+      _seed = random ? DateTime.now().millisecondsSinceEpoch : 0;
+      _ordered = random
+          ? seededShuffle(widget.questions, _seed)
+          : List<Question>.from(widget.questions);
+      _index = 0;
+      _earned = List<double>.filled(_ordered.length, 0);
+      _answers = List<String>.filled(_ordered.length, '');
+      _done = List<bool>.filled(_ordered.length, false);
+      _disposeFillControllers();
+      _fillControllers = <List<TextEditingController>>[
+        for (final Question q in _ordered) _buildFillControllers(q),
+      ];
+      _controller.clear();
+      _showAnswer = false;
+      _aiScore = null;
+      _aiFeedback = null;
+    });
+    _persistProgress();
+  }
+
+  List<String> _distinctTypes() {
+    final List<String> types = <String>[];
+    for (final Question q in _ordered) {
+      if (!types.contains(q.type)) types.add(q.type);
+    }
+    return types;
+  }
+
+  int _firstIndexOfType(String type) {
+    for (int i = 0; i < _ordered.length; i++) {
+      if (_ordered[i].type == type) return i;
+    }
+    return 0;
+  }
+
+  void _openAnswerSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return StatefulBuilder(
+          builder: (BuildContext ctx, StateSetter sheetSetState) {
+            return _AnswerSheet(
+              total: _ordered.length,
+              current: _index,
+              done: _done,
+              types: _distinctTypes(),
+              currentType: _q.type,
+              random: _random,
+              onJump: (int i) {
+                Navigator.of(sheetContext).pop();
+                _goTo(i);
+              },
+              onJumpType: (String type) {
+                Navigator.of(sheetContext).pop();
+                _goTo(_firstIndexOfType(type));
+              },
+              onToggleOrder: (bool random) async {
+                final bool proceed = await _confirmOrderChange();
+                if (proceed && mounted) {
+                  _setOrder(random);
+                }
+                sheetSetState(() {});
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_ordered.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title)),
+        body: const EmptyView(icon: Icons.inbox_outlined, message: '暂无题目'),
+      );
+    }
     final ColorScheme scheme = Theme.of(context).colorScheme;
-    final double progress = widget.questions.isEmpty
-        ? 0
-        : _answeredCount / widget.questions.length;
+    final double progress =
+        _answeredCount / _ordered.length;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: <Widget>[
+          IconButton(
+            tooltip: '答题卡',
+            icon: const Icon(Icons.grid_view_outlined),
+            onPressed: _openAnswerSheet,
+          ),
           IconButton(
             tooltip: 'AI 深度解析',
             icon: const Icon(Icons.auto_awesome),
@@ -185,7 +419,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             child: Row(
               children: <Widget>[
                 Text(
-                  '第 ${_index + 1}/${widget.questions.length} 题',
+                  '第 ${_index + 1}/${_ordered.length} 题',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -215,13 +449,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     _GroupStemCard(text: _q.groupStem!),
                     const SizedBox(height: 12),
                   ],
-                  Text(
-                    _q.stem,
-                    style: const TextStyle(fontSize: 16, height: 1.6),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_q.isObjective) ..._buildObjective(),
-                  if (_q.isSubjective) ..._buildSubjective(),
+                  if (_q.isFillBlank)
+                    ..._buildFillBlank()
+                  else ...[
+                    Text(
+                      _q.stem,
+                      style: const TextStyle(fontSize: 16, height: 1.6),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_q.isObjective) ..._buildObjective(),
+                    if (_q.isSubjective) ..._buildSubjective(),
+                  ],
                   const SizedBox(height: 12),
                   ..._buildFeedback(),
                 ],
@@ -251,6 +489,45 @@ class _PracticeScreenState extends State<PracticeScreen> {
     ];
   }
 
+  List<Widget> _buildFillBlank() {
+    final List<String> blanks = _q.fillBlankAnswers;
+    final List<String> segments = _q.stem.split(RegExp(r'_{3,}'));
+    final int fields = blanks.isEmpty ? 1 : blanks.length;
+    final List<Widget> children = <Widget>[];
+    for (int i = 0; i < segments.length; i++) {
+      if (segments[i].trim().isNotEmpty) {
+        children.add(
+          Text(segments[i], style: const TextStyle(fontSize: 16, height: 1.7)),
+        );
+      }
+      if (i < fields) {
+        children.add(_fillInput(i));
+      }
+    }
+    // 题干空位少于答案数（异常数据兜底）：末尾补齐剩余输入框。
+    if (fields > segments.length - 1) {
+      for (int i = segments.length; i < fields; i++) {
+        children.add(_fillInput(i));
+      }
+    }
+    return children;
+  }
+
+  Widget _fillInput(int i) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: TextField(
+        controller: _fillControllers[_index][i],
+        enabled: !_answered,
+        onChanged: _answered ? null : (_) => _syncFillAnswers(),
+        decoration: InputDecoration(
+          hintText: '第 ${i + 1} 空',
+          isDense: true,
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildSubjective() {
     return <Widget>[
       TextField(
@@ -273,9 +550,66 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   List<Widget> _buildFeedback() {
     final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    if (_q.isFillBlank && _answered) {
+      final FillBlankResult result = FillBlankGrader.grade(
+        userAnswer: _answers[_index],
+        correctAnswer: _q.answer,
+        totalScore: _q.score,
+      );
+      final bool allCorrect = result.allCorrect;
+      final Color color =
+          allCorrect ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+      final List<String> correctBlanks = FillBlankGrader.splitBlanks(_q.answer);
+      final List<String> userBlanks =
+          FillBlankGrader.splitBlanks(_answers[_index]);
+      return <Widget>[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withOpacity(0.6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(allCorrect ? Icons.check_circle : Icons.cancel,
+                      color: color),
+                  const SizedBox(width: 8),
+                  Text(
+                    '答对 ${result.correctCount}/${result.totalCount} 空',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              for (int i = 0; i < correctBlanks.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    '空${i + 1}：你的答案「${i < userBlanks.length ? userBlanks[i] : '未填'}」'
+                    '  正确答案「${correctBlanks[i]}」',
+                    style: const TextStyle(fontSize: 14, height: 1.5),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ];
+    }
+
     if (_q.isObjective && _answered) {
       final bool correct = _earned[_index] >= _q.score;
-      final Color color = correct ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+      final Color color =
+          correct ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
       final String correctText = _correctOptionText();
       return <Widget>[
         Container(
@@ -339,7 +673,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF4CAF50).withOpacity(0.12),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.5)),
+              border:
+                  Border.all(color: const Color(0xFF4CAF50).withOpacity(0.5)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,6 +748,39 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   Widget _buildBottomBar() {
     final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    if (_q.isFillBlank) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Row(
+          children: <Widget>[
+            if (_index > 0)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _goTo(_index - 1),
+                  child: const Text('上一题'),
+                ),
+              ),
+            if (_index > 0) const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: _answered
+                  ? FilledButton(
+                      onPressed: _next,
+                      child: Text(
+                        _index == _ordered.length - 1 ? '查看结果' : '下一题',
+                      ),
+                    )
+                  : FilledButton(
+                      onPressed: _submitFillBlank,
+                      child: const Text('提交判分'),
+                    ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_q.isObjective) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -432,9 +800,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ? FilledButton(
                       onPressed: _next,
                       child: Text(
-                        _index == widget.questions.length - 1
-                            ? '查看结果'
-                            : '下一题',
+                        _index == _ordered.length - 1 ? '查看结果' : '下一题',
                       ),
                     )
                   : FilledButton(
@@ -526,9 +892,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   child: FilledButton(
                     onPressed: _next,
                     child: Text(
-                      _index == widget.questions.length - 1
-                          ? '查看结果'
-                          : '下一题',
+                      _index == _ordered.length - 1 ? '查看结果' : '下一题',
                     ),
                   ),
                 ),
@@ -545,6 +909,152 @@ class _PracticeScreenState extends State<PracticeScreen> {
     final int idx = answer.codeUnitAt(0) - 65;
     if (idx < 0 || idx >= _q.options.length) return '';
     return _q.options[idx];
+  }
+}
+
+/// 答题卡底部面板：题目编号跳转 + 题型快速跳转 + 顺序/随机切换。
+class _AnswerSheet extends StatelessWidget {
+  const _AnswerSheet({
+    required this.total,
+    required this.current,
+    required this.done,
+    required this.types,
+    required this.currentType,
+    required this.random,
+    required this.onJump,
+    required this.onJumpType,
+    required this.onToggleOrder,
+  });
+
+  final int total;
+  final int current;
+  final List<bool> done;
+  final List<String> types;
+  final String currentType;
+  final bool random;
+  final void Function(int index) onJump;
+  final void Function(String type) onJumpType;
+  final void Function(bool random) onToggleOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+            Row(
+              children: <Widget>[
+                const Text(
+                  '答题卡',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Text(
+                  '顺序/随机',
+                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(width: 8),
+                Switch(
+                  value: random,
+                  onChanged: onToggleOrder,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (int i = 0; i < total; i++)
+                  _NumberChip(
+                    number: i + 1,
+                    state: i == current
+                        ? _ChipState.current
+                        : (done[i] ? _ChipState.done : _ChipState.pending),
+                    onTap: () => onJump(i),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '跳转题型',
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (final String type in types)
+                  ChoiceChip(
+                    label: Text(type),
+                    selected: type == currentType,
+                    onSelected: (_) => onJumpType(type),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _ChipState { current, done, pending }
+
+class _NumberChip extends StatelessWidget {
+  const _NumberChip({
+    required this.number,
+    required this.state,
+    required this.onTap,
+  });
+
+  final int number;
+  final _ChipState state;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    Color background = scheme.surfaceVariant;
+    Color foreground = scheme.onSurfaceVariant;
+    if (state == _ChipState.current) {
+      background = scheme.primary;
+      foreground = scheme.onPrimary;
+    } else if (state == _ChipState.done) {
+      background = const Color(0xFF4CAF50);
+      foreground = Colors.white;
+    }
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '$number',
+          style: TextStyle(
+            color: foreground,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
   }
 }
 

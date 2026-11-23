@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/question.dart';
+import '../utils/fill_blank_grader.dart';
 import '../utils/format.dart';
 import '../widgets/common.dart';
 
@@ -31,9 +32,17 @@ class ResultScreen extends StatelessWidget {
   int get _objectiveCorrect {
     int count = 0;
     for (int i = 0; i < questions.length; i++) {
-      if (questions[i].isObjective &&
+      final Question q = questions[i];
+      if (q.isFillBlank) {
+        final FillBlankResult r = FillBlankGrader.grade(
+          userAnswer: answers[i],
+          correctAnswer: q.answer,
+          totalScore: q.score,
+        );
+        if (r.allCorrect) count++;
+      } else if (q.isObjective &&
           answers[i].trim().toUpperCase() ==
-              questions[i].answer.trim().toUpperCase()) {
+              q.answer.trim().toUpperCase()) {
         count++;
       }
     }
@@ -219,6 +228,12 @@ class _ReviewCard extends StatelessWidget {
     final bool full = earned >= question.score;
     final Color accent =
         full ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final List<String> fillCorrect = question.isFillBlank
+        ? FillBlankGrader.splitBlanks(question.answer)
+        : const <String>[];
+    final List<String> fillUser = question.isFillBlank
+        ? FillBlankGrader.splitBlanks(userAnswer)
+        : const <String>[];
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
@@ -252,7 +267,23 @@ class _ReviewCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 14, height: 1.5),
             ),
-            if (question.isObjective) ...[
+            if (question.isFillBlank) ...[
+              const SizedBox(height: 8),
+              for (int i = 0; i < fillCorrect.length; i++)
+                Text(
+                  '空${i + 1}：我的「${i < fillUser.length ? fillUser[i] : '未填'}」'
+                  '  正确「${fillCorrect[i]}」',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: (i < fillUser.length &&
+                            FillBlankGrader.isBlankCorrect(
+                                fillUser[i], fillCorrect[i]))
+                        ? const Color(0xFF4CAF50)
+                        : const Color(0xFFE53935),
+                  ),
+                ),
+            ] else if (question.isObjective) ...[
               const SizedBox(height: 8),
               Text(
                 '我的答案：${userAnswer.isEmpty ? '未作答' : userAnswer}',

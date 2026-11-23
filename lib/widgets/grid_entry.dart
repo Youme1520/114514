@@ -51,13 +51,16 @@ class GridEntry extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Flexible(
+                child: Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.3,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],

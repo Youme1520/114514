@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/paper.dart';
 import '../models/question.dart';
+import '../models/study_progress.dart';
 import '../widgets/common.dart';
 import 'practice_screen.dart';
 
@@ -96,6 +97,8 @@ class PaperDetailScreen extends StatelessWidget {
                   builder: (_) => PracticeScreen(
                     title: '第${paper.set}套 · 整套练习',
                     questions: paper.questions,
+                    resumeKind: ProgressKind.paper,
+                    resumeIdentifier: '${paper.set}',
                   ),
                 ),
               ),

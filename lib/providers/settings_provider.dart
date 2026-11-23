@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/ai_config.dart';
+import '../models/study_progress.dart';
 import '../services/settings_service.dart';
 
-/// 设置状态：主题模式、AI 配置与学习统计。
+/// 设置状态：主题模式、AI 配置、学习统计与断点续传。
 class SettingsProvider extends ChangeNotifier {
   SettingsProvider(this._service);
 
@@ -13,6 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   AiConfig _aiConfig = AiConfig.defaultZhipu;
   int _totalAnswered = 0;
   int _correctCount = 0;
+  StudyProgress? _studyProgress;
   bool _loaded = false;
 
   ThemeMode get themeMode => _themeMode;
@@ -25,6 +27,9 @@ class SettingsProvider extends ChangeNotifier {
 
   bool get isDark => _themeMode == ThemeMode.dark;
 
+  /// 当前断点续传进度（无则为 null）。
+  StudyProgress? get studyProgress => _studyProgress;
+
   /// 加载本地配置与统计。
   Future<void> init() async {
     if (_loaded) return;
@@ -32,6 +37,7 @@ class SettingsProvider extends ChangeNotifier {
     _aiConfig = await _service.getAiConfig();
     _totalAnswered = await _service.getAnswered();
     _correctCount = await _service.getCorrect();
+    _studyProgress = await _service.getStudyProgress();
     _loaded = true;
     notifyListeners();
   }
@@ -68,5 +74,19 @@ class SettingsProvider extends ChangeNotifier {
     if (correct) _correctCount++;
     notifyListeners();
     await _service.recordAnswer(correct: correct);
+  }
+
+  /// 保存断点续传进度。
+  Future<void> saveStudyProgress(StudyProgress progress) async {
+    _studyProgress = progress;
+    notifyListeners();
+    await _service.setStudyProgress(progress);
+  }
+
+  /// 清除断点续传进度。
+  Future<void> clearStudyProgress() async {
+    _studyProgress = null;
+    notifyListeners();
+    await _service.clearStudyProgress();
   }
 }
