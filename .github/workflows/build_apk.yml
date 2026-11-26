@@ -52,47 +52,16 @@ jobs:
           fi
 
       # 4.6 注入备用 Maven 镜像源，规避 Maven 中央仓库 HTTP 429 限流
-      #     - 在阿里云镜像之间做首选，并保留 google/mavenCentral 作为兜底
-      #     - 同时兼容 Groovy DSL(.gradle) 与 Kotlin DSL(.gradle.kts) 两种工程
-      #     - 镜像放在 google() 之前，官方源兜底，避免镜像同步不完整导致的缺失
+      #     - 只注入「依赖仓库」(allprojects.repositories)，绝不改动 pluginManagement
+      #     - pluginManagement 里的 flutter-plugin-loader 由 includeBuild 提供，
+      #       若往里加自定义 maven 仓库会触发 Gradle 校验错误导致插件解析失败
+      #     - 脚本逻辑独立存放于 .github/scripts/inject_mirrors.py，便于本地测试
       - name: 配置 Gradle 镜像源（防 429 限流）
         run: |
-          # 将注入逻辑写入临时脚本文件，避免 heredoc 与 YAML 块标量冲突
-          cat > /tmp/inject_mirror.py <<'PYEOF'
-          import sys, re
-          p, dsl = sys.argv[1], sys.argv[2]
-          s = open(p, encoding='utf-8').read()
-          if dsl == 'kts':
-              mirrors = "\n".join([
-                  "        maven(\"https://maven.aliyun.com/repository/google\")",
-                  "        maven(\"https://maven.aliyun.com/repository/public\")",
-                  "        maven(\"https://maven.aliyun.com/repository/central\")",
-                  "        maven(\"https://maven.aliyun.com/repository/gradle-plugin\")",
-              ])
-          else:
-              mirrors = "\n".join([
-                  "        maven { url 'https://maven.aliyun.com/repository/google' }",
-                  "        maven { url 'https://maven.aliyun.com/repository/public' }",
-                  "        maven { url 'https://maven.aliyun.com/repository/central' }",
-                  "        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }",
-              ])
-          new = re.sub(r'(repositories\s*\{)', r'\1\n' + mirrors, s)
-          if new != s:
-              open(p, 'w', encoding='utf-8').write(new)
-              print('[OK] ' + p + ' injected')
-          else:
-              print('[SKIP] ' + p + ' no repositories block')
-          PYEOF
-          # 需要注入镜像的文件清单（Flutter 3.24 默认生成 Groovy DSL）
-          for f in android/settings.gradle android/build.gradle android/settings.gradle.kts android/build.gradle.kts; do
-            [ -f "$f" ] || continue
-            echo ">>> processing $f"
-            case "$f" in
-              *.kts) DSL=kts ;;
-              *)     DSL=groovy ;;
-            esac
-            python3 /tmp/inject_mirror.py "$f" "$DSL"
-          done
+          python3 .github/scripts/inject_mirrors.py
+          echo "=== 注入后的 android/build.gradle 内容预览 ==="
+          [ -f android/build.gradle ] && cat android/build.gradle
+          [ -f android/build.gradle.kts ] && cat android/build.gradle.kts
 
       # 5. 拉取依赖
       - name: 安装依赖 (flutter pub get)
