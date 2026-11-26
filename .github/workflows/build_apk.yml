@@ -67,37 +67,6 @@ jobs:
       - name: 安装依赖 (flutter pub get)
         run: flutter pub get
 
-      # 5.0 写入全局 Gradle init 脚本（最彻底的防 429 兜底）
-      #     - init.gradle 对任何工程结构都生效，无论 settings.gradle 用哪种 DSL
-      #     - 阿里云镜像优先，google/mavenCentral 兜底
-      - name: 配置全局 Gradle 镜像（init.gradle）
-        run: |
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/init.gradle <<'EOF'
-          allprojects {
-              buildscript {
-                  repositories {
-                      maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-                      maven { url 'https://maven.aliyun.com/repository/public' }
-                      maven { url 'https://maven.aliyun.com/repository/google' }
-                      google()
-                      mavenCentral()
-                      gradlePluginPortal()
-                  }
-              }
-              repositories {
-                  maven { url 'https://maven.aliyun.com/repository/google' }
-                  maven { url 'https://maven.aliyun.com/repository/public' }
-                  maven { url 'https://maven.aliyun.com/repository/central' }
-                  maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-                  google()
-                  mavenCentral()
-              }
-          }
-          EOF
-          echo "=== 已写入 ~/.gradle/init.gradle ==="
-          cat ~/.gradle/init.gradle
-
       # 5.1 运行单元测试（解析/判分/断点续传/数据完整性）
       #     先安装 libsqlite3：sqflite_common_ffi v2 在 Linux 上依赖系统 SQLite 库
       #     （ubuntu-latest 24.04 默认不预装，缺少会导致数据库单测报 libsqlite3.so 加载失败）
