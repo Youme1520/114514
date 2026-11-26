@@ -51,9 +51,82 @@ jobs:
             rm -f test/widget_test.dart
           fi
 
+      # 4.6 注入备用 Maven 镜像源，规避 Maven 中央仓库 HTTP 429 限流
+      #     - 在阿里云镜像之间做首选，并保留 google/mavenCentral 作为兜底
+      #     - 同时兼容 Groovy DSL(.gradle) 与 Kotlin DSL(.gradle.kts) 两种工程
+      #     - 镜像放在 google() 之前，官方源兜底，避免镜像同步不完整导致的缺失
+      - name: 配置 Gradle 镜像源（防 429 限流）
+        run: |
+          # 需要注入镜像的文件清单（Flutter 3.24 默认生成 Groovy DSL）
+          FILES="android/settings.gradle android/build.gradle android/settings.gradle.kts android/build.gradle.kts"
+          for f in $FILES; do
+            [ -f "$f" ] || continue
+            echo ">>> 处理 $f"
+            # 判断是否 Kotlin DSL（.kts）
+            case "$f" in
+              *.kts) DSL=kts ;;
+              *)     DSL=groovy ;;
+            esac
+            python3 - "$f" "$DSL" <<'PYEOF'
+import sys, re
+p, dsl = sys.argv[1], sys.argv[2]
+s = open(p, encoding='utf-8').read()
+if dsl == 'kts':
+    mirrors = """        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/public")
+        maven("https://maven.aliyun.com/repository/central")
+        maven("https://maven.aliyun.com/repository/gradle-plugin")
+"""
+else:
+    mirrors = """        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+"""
+# 在每个 repositories { ... } 块内，紧跟 "repositories {" 后插入镜像（官方源保留在后作兜底）
+new = re.sub(r'(repositories\s*\{)', r'\1\n' + mirrors, s)
+if new != s:
+    open(p, 'w', encoding='utf-8').write(new)
+    print(f'[OK] {p} 已注入阿里云镜像')
+else:
+    print(f'[SKIP] {p} 未发现 repositories 块')
+PYEOF
+          done
+
       # 5. 拉取依赖
       - name: 安装依赖 (flutter pub get)
         run: flutter pub get
+
+      # 5.0 写入全局 Gradle init 脚本（最彻底的防 429 兜底）
+      #     - init.gradle 对任何工程结构都生效，无论 settings.gradle 用哪种 DSL
+      #     - 阿里云镜像优先，google/mavenCentral 兜底
+      - name: 配置全局 Gradle 镜像（init.gradle）
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle <<'EOF'
+allprojects {
+    buildscript {
+        repositories {
+            maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+            maven { url 'https://maven.aliyun.com/repository/public' }
+            maven { url 'https://maven.aliyun.com/repository/google' }
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+        }
+    }
+    repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        google()
+        mavenCentral()
+    }
+}
+EOF
+          echo "=== 已写入 ~/.gradle/init.gradle ==="
+          cat ~/.gradle/init.gradle
 
       # 5.1 运行单元测试（解析/判分/断点续传/数据完整性）
       #     先安装 libsqlite3：sqflite_common_ffi v2 在 Linux 上依赖系统 SQLite 库
@@ -78,9 +151,21 @@ jobs:
           # 设置应用显示名（应用标签）
           sed -i 's|android:label="yingxiang_tiku_app"|android:label="影像技术刷题宝"|' "$MANIFEST"
 
-      # 6. 构建 Release APK
+      # 6. 构建 Release APK（带重试，规避瞬时 429 网络抖动）
       - name: 构建 Release APK
-        run: flutter build apk --release
+        run: |
+          # Gradle 下载依赖偶发 429，重试最多 3 次
+          for i in 1 2 3; do
+            echo "=== 第 $i 次尝试构建 APK ==="
+            if flutter build apk --release; then
+              echo "=== 构建成功 ==="
+              exit 0
+            fi
+            echo "=== 第 $i 次构建失败，等待后重试 ==="
+            sleep $((i * 30))
+          done
+          echo "=== 3 次构建均失败 ==="
+          exit 1
 
       # 7. 上传 APK 作为构建产物
       - name: 上传 APK 构建产物
