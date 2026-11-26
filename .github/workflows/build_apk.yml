@@ -57,40 +57,41 @@ jobs:
       #     - 镜像放在 google() 之前，官方源兜底，避免镜像同步不完整导致的缺失
       - name: 配置 Gradle 镜像源（防 429 限流）
         run: |
+          # 将注入逻辑写入临时脚本文件，避免 heredoc 与 YAML 块标量冲突
+          cat > /tmp/inject_mirror.py <<'PYEOF'
+          import sys, re
+          p, dsl = sys.argv[1], sys.argv[2]
+          s = open(p, encoding='utf-8').read()
+          if dsl == 'kts':
+              mirrors = "\n".join([
+                  "        maven(\"https://maven.aliyun.com/repository/google\")",
+                  "        maven(\"https://maven.aliyun.com/repository/public\")",
+                  "        maven(\"https://maven.aliyun.com/repository/central\")",
+                  "        maven(\"https://maven.aliyun.com/repository/gradle-plugin\")",
+              ])
+          else:
+              mirrors = "\n".join([
+                  "        maven { url 'https://maven.aliyun.com/repository/google' }",
+                  "        maven { url 'https://maven.aliyun.com/repository/public' }",
+                  "        maven { url 'https://maven.aliyun.com/repository/central' }",
+                  "        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }",
+              ])
+          new = re.sub(r'(repositories\s*\{)', r'\1\n' + mirrors, s)
+          if new != s:
+              open(p, 'w', encoding='utf-8').write(new)
+              print('[OK] ' + p + ' injected')
+          else:
+              print('[SKIP] ' + p + ' no repositories block')
+          PYEOF
           # 需要注入镜像的文件清单（Flutter 3.24 默认生成 Groovy DSL）
-          FILES="android/settings.gradle android/build.gradle android/settings.gradle.kts android/build.gradle.kts"
-          for f in $FILES; do
+          for f in android/settings.gradle android/build.gradle android/settings.gradle.kts android/build.gradle.kts; do
             [ -f "$f" ] || continue
-            echo ">>> 处理 $f"
-            # 判断是否 Kotlin DSL（.kts）
+            echo ">>> processing $f"
             case "$f" in
               *.kts) DSL=kts ;;
               *)     DSL=groovy ;;
             esac
-            python3 - "$f" "$DSL" <<'PYEOF'
-import sys, re
-p, dsl = sys.argv[1], sys.argv[2]
-s = open(p, encoding='utf-8').read()
-if dsl == 'kts':
-    mirrors = """        maven("https://maven.aliyun.com/repository/google")
-        maven("https://maven.aliyun.com/repository/public")
-        maven("https://maven.aliyun.com/repository/central")
-        maven("https://maven.aliyun.com/repository/gradle-plugin")
-"""
-else:
-    mirrors = """        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-"""
-# 在每个 repositories { ... } 块内，紧跟 "repositories {" 后插入镜像（官方源保留在后作兜底）
-new = re.sub(r'(repositories\s*\{)', r'\1\n' + mirrors, s)
-if new != s:
-    open(p, 'w', encoding='utf-8').write(new)
-    print(f'[OK] {p} 已注入阿里云镜像')
-else:
-    print(f'[SKIP] {p} 未发现 repositories 块')
-PYEOF
+            python3 /tmp/inject_mirror.py "$f" "$DSL"
           done
 
       # 5. 拉取依赖
@@ -104,27 +105,27 @@ PYEOF
         run: |
           mkdir -p ~/.gradle
           cat > ~/.gradle/init.gradle <<'EOF'
-allprojects {
-    buildscript {
-        repositories {
-            maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-            maven { url 'https://maven.aliyun.com/repository/public' }
-            maven { url 'https://maven.aliyun.com/repository/google' }
-            google()
-            mavenCentral()
-            gradlePluginPortal()
-        }
-    }
-    repositories {
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-        google()
-        mavenCentral()
-    }
-}
-EOF
+          allprojects {
+              buildscript {
+                  repositories {
+                      maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+                      maven { url 'https://maven.aliyun.com/repository/public' }
+                      maven { url 'https://maven.aliyun.com/repository/google' }
+                      google()
+                      mavenCentral()
+                      gradlePluginPortal()
+                  }
+              }
+              repositories {
+                  maven { url 'https://maven.aliyun.com/repository/google' }
+                  maven { url 'https://maven.aliyun.com/repository/public' }
+                  maven { url 'https://maven.aliyun.com/repository/central' }
+                  maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
           echo "=== 已写入 ~/.gradle/init.gradle ==="
           cat ~/.gradle/init.gradle
 
