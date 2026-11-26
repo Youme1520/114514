@@ -10,6 +10,8 @@ Color typeColor(String type) {
   switch (type) {
     case QuestionType.single:
       return const Color(0xFF2196F3);
+    case QuestionType.multiChoice:
+      return const Color(0xFF3F51B5);
     case QuestionType.sharedStem:
       return const Color(0xFF9C27B0);
     case QuestionType.fillBlank:
@@ -30,6 +32,8 @@ IconData typeIcon(String type) {
   switch (type) {
     case QuestionType.single:
       return Icons.check_circle_outline;
+    case QuestionType.multiChoice:
+      return Icons.checklist_rounded;
     case QuestionType.sharedStem:
       return Icons.groups_outlined;
     case QuestionType.fillBlank:

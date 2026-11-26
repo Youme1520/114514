@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/question.dart';
 import '../utils/fill_blank_grader.dart';
 import '../utils/format.dart';
+import '../utils/multi_choice_grader.dart';
 import '../widgets/common.dart';
 
 /// 练习结果页：得分汇总与逐题回顾。
@@ -40,6 +41,13 @@ class ResultScreen extends StatelessWidget {
           totalScore: q.score,
         );
         if (r.allCorrect) count++;
+      } else if (q.isMultiChoice) {
+        if (MultiChoiceGrader.isCorrect(
+          MultiChoiceGrader.parseLetters(answers[i]),
+          q.answer,
+        )) {
+          count++;
+        }
       } else if (q.isObjective &&
           answers[i].trim().toUpperCase() ==
               q.answer.trim().toUpperCase()) {
@@ -296,14 +304,42 @@ class _ReviewCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (question.analysis.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '解析：${question.analysis}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ] else ...[
               const SizedBox(height: 8),
               Text(
                 '我的答案：${userAnswer.isEmpty ? '未作答' : userAnswer}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
               ),
+              const SizedBox(height: 6),
+              Text(
+                '参考答案：${question.answer}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (question.analysis.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '解析：${question.analysis}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ],
         ),

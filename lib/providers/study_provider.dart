@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/chapter_data.dart';
 import '../data/exam_data.dart';
 import '../data/knowledge_data.dart';
 import '../models/knowledge_card.dart';
@@ -36,6 +37,19 @@ class StudyProvider extends ChangeNotifier {
   List<Question> get builtinQuestions =>
       <Question>[for (final Paper p in allBuiltinPapers) ...p.questions];
 
+  /// 分章节题库（章节名 → 题目列表，数据来自 `lib/data/chapter_data.dart`）。
+  Map<String, List<Question>> get chapterQuestions =>
+      ChapterQuestionBank.chapterQuestions;
+
+  /// 分章节题库的章节名（按顺序排列）。
+  List<String> get chapterNames => ChapterQuestionBank.allChapters;
+
+  /// 分章节题库总题数。
+  int get totalChapterQuestions => ChapterQuestionBank.totalCount;
+
+  /// 指定章节的分章节题库题目数。
+  int chapterQuestionCount(String chapter) => ChapterQuestionBank.countOf(chapter);
+
   /// 按套次查找内置试卷。
   Paper? paperBySet(int set) {
     for (final Paper p in allBuiltinPapers) {
@@ -60,6 +74,8 @@ class StudyProvider extends ChangeNotifier {
         return paper?.questions ?? const <Question>[];
       case ProgressKind.type:
         return questionsByType(progress.identifier);
+      case ProgressKind.chapter:
+        return questionsByChapter(progress.identifier);
       default:
         return const <Question>[];
     }
@@ -71,8 +87,9 @@ class StudyProvider extends ChangeNotifier {
   /// 内置题总数。
   int get totalBuiltinQuestions => builtinQuestions.length;
 
-  /// 题目总数（内置 + 导入）。
-  int get totalQuestions => totalBuiltinQuestions + _imported.length;
+  /// 题目总数（内置试卷 + 分章节题库 + 导入）。
+  int get totalQuestions =>
+      totalBuiltinQuestions + totalChapterQuestions + _imported.length;
 
   /// 已掌握卡片索引。
   Set<int> get memorizedIndexes => Set<int>.unmodifiable(_memorized);
@@ -92,21 +109,28 @@ class StudyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 按题型筛选（内置 + 导入）。
+  /// 按题型筛选（内置试卷 + 导入题库 + 分章节题库）。
   List<Question> questionsByType(String type) {
     final List<Question> result = builtinQuestions
         .where((Question q) => q.type == type)
         .toList();
     result.addAll(_imported.where((Question q) => q.type == type));
+    for (final List<Question> list
+        in ChapterQuestionBank.chapterQuestions.values) {
+      result.addAll(list.where((Question q) => q.type == type));
+    }
     return result;
   }
 
-  /// 按章节筛选（内置 + 导入）。
+  /// 按章节筛选（内置试卷 + 导入题库 + 分章节题库）。
   List<Question> questionsByChapter(String chapter) {
     final List<Question> result = builtinQuestions
         .where((Question q) => q.chapter == chapter)
         .toList();
     result.addAll(_imported.where((Question q) => q.chapter == chapter));
+    result.addAll(
+      ChapterQuestionBank.chapterQuestions[chapter] ?? const <Question>[],
+    );
     return result;
   }
 
@@ -121,6 +145,8 @@ class StudyProvider extends ChangeNotifier {
     final Iterable<Question> existing = <Question>[
       ...builtinQuestions,
       ..._imported,
+      for (final List<Question> list in ChapterQuestionBank.chapterQuestions.values)
+        ...list,
     ];
     final ({List<Question> unique, int duplicates}) deduped =
         ImportService.deduplicate(result.questions, existing);

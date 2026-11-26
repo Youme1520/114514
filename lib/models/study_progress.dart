@@ -2,12 +2,14 @@ import 'dart:convert';
 
 /// 学习进度种类。
 ///
-/// [paper] 表示整套试卷刷题，[type] 表示分题型刷题，[memorize] 表示章节背诵。
+/// [paper] 表示整套试卷刷题，[type] 表示分题型刷题，
+/// [chapter] 表示分章节刷题，[memorize] 表示章节背诵。
 class ProgressKind {
   ProgressKind._();
 
   static const String paper = 'paper';
   static const String type = 'type';
+  static const String chapter = 'chapter';
   static const String memorize = 'memorize';
 }
 

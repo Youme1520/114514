@@ -2,12 +2,13 @@ import 'dart:convert';
 
 /// 题型常量定义。
 ///
-/// 题库包含六种题型：单选题、共用题干选择题、填空题、名词解释、简答题、分析题。
-/// 其中单选、共用题干与填空为客观题（可自动判分），其余为主观题（需自评或 AI 批改）。
+/// 题库包含七种题型：单选题、多选题、共用题干选择题、填空题、名词解释、简答题、分析题。
+/// 其中单选、多选、共用题干与填空为客观题（可自动判分），其余为主观题（需自评或 AI 批改）。
 class QuestionType {
   QuestionType._();
 
   static const String single = '单选';
+  static const String multiChoice = '多选';
   static const String sharedStem = '共用题干选择';
   static const String fillBlank = '填空';
   static const String term = '名词解释';
@@ -16,6 +17,7 @@ class QuestionType {
 
   static const List<String> all = <String>[
     single,
+    multiChoice,
     sharedStem,
     fillBlank,
     term,
@@ -23,9 +25,12 @@ class QuestionType {
     analysis,
   ];
 
-  /// 判断是否为客观题（单选/共用题干选择/填空）。
+  /// 判断是否为客观题（单选/多选/共用题干选择/填空）。
   static bool isObjective(String type) =>
-      type == single || type == sharedStem || type == fillBlank;
+      type == single ||
+      type == multiChoice ||
+      type == sharedStem ||
+      type == fillBlank;
 
   /// 判断是否为主观题（名词解释/简答/分析题）。
   static bool isSubjective(String type) =>
@@ -99,6 +104,9 @@ class Question {
 
   /// 是否为填空题（客观题中的特殊题型，需要逐空判分）。
   bool get isFillBlank => type == QuestionType.fillBlank;
+
+  /// 是否为多选题（X 型题，客观题中的特殊题型，需要集合判分）。
+  bool get isMultiChoice => type == QuestionType.multiChoice;
 
   /// 填空题各空位答案（按「；」或「;」拆分，去除首尾空白与空项）。
   List<String> get fillBlankAnswers {

@@ -8,6 +8,7 @@ import '../providers/study_provider.dart';
 import '../widgets/grid_entry.dart';
 import 'ai_settings_screen.dart';
 import 'card_study_screen.dart';
+import 'chapter_practice_screen.dart';
 import 'import_screen.dart';
 import 'memorize_screen.dart';
 import 'my_questions_screen.dart';
@@ -91,6 +92,13 @@ class HomeScreen extends StatelessWidget {
                     subtitle: '单选·名词解释等',
                     color: const Color(0xFF2196F3),
                     onTap: () => _push(context, const TypePracticeScreen()),
+                  ),
+                  GridEntry(
+                    icon: Icons.menu_book_outlined,
+                    title: '分章节刷题',
+                    subtitle: '十章习题精练',
+                    color: const Color(0xFF673AB7),
+                    onTap: () => _push(context, const ChapterPracticeScreen()),
                   ),
                   GridEntry(
                     icon: Icons.style_outlined,

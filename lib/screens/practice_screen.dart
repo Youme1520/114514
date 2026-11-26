@@ -8,6 +8,7 @@ import '../providers/settings_provider.dart';
 import '../services/ai_service.dart';
 import '../utils/fill_blank_grader.dart';
 import '../utils/format.dart';
+import '../utils/multi_choice_grader.dart';
 import '../utils/shuffle.dart';
 import '../widgets/common.dart';
 import '../widgets/option_tile.dart';
@@ -160,6 +161,48 @@ class _PracticeScreenState extends State<PracticeScreen> {
     _persistProgress();
   }
 
+  /// 当前题目的已选字母集合（仅多选题有意义）。
+  Set<String> get _selectedLetters => _q.isMultiChoice
+      ? MultiChoiceGrader.parseLetters(_answers[_index])
+      : <String>{};
+
+  /// 切换多选题某个选项的选中状态（作答前）。
+  void _toggleMultiOption(int i) {
+    if (_answered) return;
+    final String letter = optionLetter(i);
+    final Set<String> selected = _selectedLetters;
+    if (selected.contains(letter)) {
+      selected.remove(letter);
+    } else {
+      selected.add(letter);
+    }
+    setState(() {
+      _answers[_index] = MultiChoiceGrader.normalizeLetters(selected);
+    });
+  }
+
+  /// 提交多选题判分：全部选对才得分，少选/错选/多选不得分。
+  void _submitMultiChoice() {
+    if (_answered) return;
+    final Set<String> selected = _selectedLetters;
+    if (selected.isEmpty) {
+      _toast('请先选择至少一个选项');
+      return;
+    }
+    final double earned = MultiChoiceGrader.grade(
+      user: selected,
+      correctAnswer: _q.answer,
+      totalScore: _q.score,
+    );
+    setState(() {
+      _done[_index] = true;
+      _earned[_index] = earned;
+      _showAnswer = true;
+    });
+    context.read<SettingsProvider>().recordAnswer(correct: earned >= _q.score);
+    _persistProgress();
+  }
+
   void _submitFillBlank() {
     if (_answered) return;
     _syncFillAnswers();
@@ -177,6 +220,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
     _persistProgress();
   }
 
+  /// 查看答案：答案与解析常驻显示，不再支持折叠/收起。
   void _revealAnswer() {
     setState(() => _showAnswer = true);
   }
@@ -473,6 +517,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   List<Widget> _buildObjective() {
+    if (_q.isMultiChoice) return _buildMultiChoice();
     return <Widget>[
       for (int i = 0; i < _q.options.length; i++)
         Padding(
@@ -484,6 +529,51 @@ class _PracticeScreenState extends State<PracticeScreen> {
             isCorrect: optionLetter(i) == _q.answer.trim().toUpperCase(),
             showResult: _answered,
             onTap: _answered ? null : () => _selectOption(i),
+          ),
+        ),
+    ];
+  }
+
+  /// 多选题选项：使用 CheckboxListTile 支持多选。
+  List<Widget> _buildMultiChoice() {
+    final Set<String> selected = _selectedLetters;
+    final Set<String> correct = MultiChoiceGrader.parseLetters(_q.answer);
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return <Widget>[
+      for (int i = 0; i < _q.options.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: CheckboxListTile(
+            value: selected.contains(optionLetter(i)),
+            onChanged: _answered ? null : (_) => _toggleMultiOption(i),
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: scheme.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _answered
+                    ? (correct.contains(optionLetter(i))
+                        ? const Color(0xFF4CAF50)
+                        : scheme.outline.withOpacity(0.5))
+                    : scheme.outline.withOpacity(0.5),
+              ),
+            ),
+            title: Text(
+              _q.options[i],
+              style: const TextStyle(fontSize: 15, height: 1.4),
+            ),
+            secondary: CircleAvatar(
+              radius: 14,
+              backgroundColor: scheme.surfaceVariant,
+              child: Text(
+                optionLetter(i),
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
           ),
         ),
     ];
@@ -803,14 +893,19 @@ class _PracticeScreenState extends State<PracticeScreen> {
                         _index == _ordered.length - 1 ? '查看结果' : '下一题',
                       ),
                     )
-                  : FilledButton(
-                      onPressed: null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: scheme.surfaceVariant,
-                        foregroundColor: scheme.onSurfaceVariant,
-                      ),
-                      child: const Text('请选择答案'),
-                    ),
+                  : _q.isMultiChoice
+                      ? FilledButton(
+                          onPressed: _submitMultiChoice,
+                          child: const Text('提交判分'),
+                        )
+                      : FilledButton(
+                          onPressed: null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.surfaceVariant,
+                            foregroundColor: scheme.onSurfaceVariant,
+                          ),
+                          child: const Text('请选择答案'),
+                        ),
             ),
           ],
         ),
@@ -843,7 +938,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _revealAnswer,
-                    child: const Text('显示参考答案'),
+                    child: const Text('查看答案'),
                   ),
                 ),
               ],
@@ -906,6 +1001,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
   String _correctOptionText() {
     final String answer = _q.answer.trim().toUpperCase();
     if (answer.isEmpty) return '';
+    if (_q.isMultiChoice) {
+      final List<String> parts = <String>[];
+      for (final String letter in MultiChoiceGrader.parseLetters(answer)) {
+        final int idx = letter.codeUnitAt(0) - 65;
+        if (idx >= 0 && idx < _q.options.length) {
+          parts.add('$letter.${_q.options[idx]}');
+        }
+      }
+      return parts.join('；');
+    }
     final int idx = answer.codeUnitAt(0) - 65;
     if (idx < 0 || idx >= _q.options.length) return '';
     return _q.options[idx];

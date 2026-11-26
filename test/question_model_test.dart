@@ -6,6 +6,7 @@ void main() {
   group('QuestionType', () {
     test('客观题与主观题判断', () {
       expect(QuestionType.isObjective(QuestionType.single), isTrue);
+      expect(QuestionType.isObjective(QuestionType.multiChoice), isTrue);
       expect(QuestionType.isObjective(QuestionType.sharedStem), isTrue);
       expect(QuestionType.isObjective(QuestionType.fillBlank), isTrue);
       expect(QuestionType.isObjective(QuestionType.term), isFalse);
@@ -13,7 +14,26 @@ void main() {
       expect(QuestionType.isSubjective(QuestionType.shortAnswer), isTrue);
       expect(QuestionType.isSubjective(QuestionType.analysis), isTrue);
       expect(QuestionType.isSubjective(QuestionType.single), isFalse);
+      expect(QuestionType.isSubjective(QuestionType.multiChoice), isFalse);
       expect(QuestionType.isSubjective(QuestionType.fillBlank), isFalse);
+    });
+
+    test('QuestionType.all 纳入多选题', () {
+      expect(QuestionType.all, contains(QuestionType.multiChoice));
+      expect(QuestionType.all, hasLength(7));
+    });
+
+    test('isMultiChoice 识别多选题', () {
+      const Question q = Question(
+        paperSet: 0,
+        type: QuestionType.multiChoice,
+        stem: '以下正确的是',
+        options: <String>['甲', '乙', '丙', '丁'],
+        answer: 'ABD',
+      );
+      expect(q.isMultiChoice, isTrue);
+      expect(q.isObjective, isTrue);
+      expect(q.isFillBlank, isFalse);
     });
 
     test('填空题空位答案拆分', () {
